@@ -43,7 +43,7 @@ export default function UpdatePasswordPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", flexDirection: "column" }}>
       <div style={{ height: 56, borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", padding: "0 24px", justifyContent: "space-between" }}>
-        <Link href="/" style={{ fontWeight: 700, fontSize: 15, color: "#111827", textDecoration: "none" }}>Ummah Connect</Link>
+        <Link href="/" style={{ fontWeight: 700, fontSize: 15, color: "#111827", textDecoration: "none" }}>IMS</Link>
       </div>
 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>

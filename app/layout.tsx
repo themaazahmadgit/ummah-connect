@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ummah Connect — Where the Ummah Builds Together",
-  description: "A global platform for Muslims to share ideas, build startups, and connect across the world. No cap.",
+  title: "IMS — Islamic Messaging System",
+  description: "The global platform where Muslims post, build startups, share ideas, and connect. Public, transparent, purposeful.",
   keywords: ["Muslim", "Islamic", "community", "startup", "ideas", "global"],
 };
 

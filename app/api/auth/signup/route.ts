@@ -53,19 +53,19 @@ export async function POST(req: NextRequest) {
     // Send welcome email
     try {
       await resend.emails.send({
-        from: "Ummah Connect <onboarding@resend.dev>",
+        from: "IMS <onboarding@resend.dev>",
         to: email,
-        subject: "Welcome to Ummah Connect",
+        subject: "Welcome to IMS",
         html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-            <h1 style="font-size: 22px; color: #111827; margin-bottom: 8px;">Welcome to Ummah Connect, ${name}!</h1>
+            <h1 style="font-size: 22px; color: #111827; margin-bottom: 8px;">Welcome to IMS, ${name}!</h1>
             <p style="color: #6b7280; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
               Your account has been created. Join the global Muslim community — share ideas, support startups, and build together.
             </p>
             <a href="https://ummah-connect.vercel.app/feed" style="display: inline-block; background: #059669; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
               Go to your feed
             </a>
-            <p style="color: #d1d5db; font-size: 12px; margin-top: 32px;">Ummah Connect · Connecting the Muslim world</p>
+            <p style="color: #d1d5db; font-size: 12px; margin-top: 32px;">IMS · Connecting the Muslim world</p>
           </div>
         `,
       });

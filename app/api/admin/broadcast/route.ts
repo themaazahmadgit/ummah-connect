@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       const batch = emails.slice(i, i + batchSize);
       try {
         await resend.emails.send({
-          from: "Ummah Connect <onboarding@resend.dev>",
+          from: "IMS <onboarding@resend.dev>",
           to: batch,
           subject: `[${type?.toUpperCase() || "ANNOUNCEMENT"}] ${title}`,
           html: `
@@ -61,9 +61,9 @@ export async function POST(req: NextRequest) {
               <h1 style="font-size: 20px; color: #111827; margin-bottom: 12px;">${title}</h1>
               <p style="color: #4b5563; font-size: 15px; line-height: 1.65; margin-bottom: 24px;">${message}</p>
               <a href="https://ummah-connect.vercel.app/feed" style="display: inline-block; background: #059669; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                View in Ummah Connect
+                View in IMS
               </a>
-              <p style="color: #d1d5db; font-size: 12px; margin-top: 32px;">Ummah Connect Admin Broadcast</p>
+              <p style="color: #d1d5db; font-size: 12px; margin-top: 32px;">IMS Admin Broadcast</p>
             </div>
           `,
         });

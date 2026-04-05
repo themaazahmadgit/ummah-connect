@@ -22,7 +22,7 @@ export default function Navbar() {
       <div className="container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
           <Link href="/" style={{ fontWeight: 700, fontSize: 15, color: "#111827", textDecoration: "none", letterSpacing: "-0.02em" }}>
-            Ummah Connect
+            IMS
           </Link>
           <div style={{ display: "flex", gap: 2 }}>
             {links.map(l => (
