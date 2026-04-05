@@ -45,7 +45,33 @@ const STATUS_COLORS: Record<string, string> = {
   "completed": "#6b7280",
 };
 
+interface IdeaComment { id: string; content: string; created_at: string; author: { name: string; username: string } }
+
 function IdeaCard({ idea, onUpvote, onJoin }: { idea: Idea; onUpvote: (id: string) => void; onJoin: (id: string) => void }) {
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<IdeaComment[]>([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const loadComments = async () => {
+    if (commentsLoaded) { setShowComments(v => !v); return; }
+    const res = await fetch(`/api/ideas/${idea.id}/comments`);
+    const data = await res.json();
+    setComments(data.comments || []);
+    setCommentsLoaded(true);
+    setShowComments(true);
+  };
+
+  const postComment = async () => {
+    if (!commentText.trim()) return;
+    setPosting(true);
+    const res = await fetch(`/api/ideas/${idea.id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: commentText }) });
+    const data = await res.json();
+    if (res.ok) { setComments(prev => [...prev, data.comment]); setCommentText(""); }
+    setPosting(false);
+  };
+
   return (
     <div className="card" style={{ padding: "16px 18px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
@@ -67,18 +93,42 @@ function IdeaCard({ idea, onUpvote, onJoin }: { idea: Idea; onUpvote: (id: strin
           <span suppressHydrationWarning style={{ fontSize: 12, color: "#d1d5db" }}>{timeAgo(idea.created_at)}</span>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => onUpvote(idea.id)}
-            className={`btn ${idea.upvoted ? "btn-primary" : "btn-secondary"} btn-sm`}
-            style={{ fontSize: 11.5 }}>
+          <button onClick={loadComments} className="btn btn-secondary btn-sm" style={{ fontSize: 11.5 }}>
+            {showComments ? "Hide" : "Comments"} {commentsLoaded ? `(${comments.length})` : ""}
+          </button>
+          <button onClick={() => onUpvote(idea.id)} className={`btn ${idea.upvoted ? "btn-primary" : "btn-secondary"} btn-sm`} style={{ fontSize: 11.5 }}>
             ▲ {idea.upvoteCount}
           </button>
-          <button onClick={() => onJoin(idea.id)}
-            className={`btn ${idea.joined ? "btn-primary" : "btn-secondary"} btn-sm`}
-            style={{ fontSize: 11.5 }}>
+          <button onClick={() => onJoin(idea.id)} className={`btn ${idea.joined ? "btn-primary" : "btn-secondary"} btn-sm`} style={{ fontSize: 11.5 }}>
             {idea.joined ? "Joined" : "Join"} · {idea.contributorCount}
           </button>
         </div>
       </div>
+
+      {showComments && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #f3f4f6" }}>
+          {comments.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+              {comments.map(c => (
+                <div key={c.id} style={{ display: "flex", gap: 8 }}>
+                  <div className="avatar avatar-emerald" style={{ width: 22, height: 22, fontSize: 9, flexShrink: 0 }}>{c.author?.name?.[0]}</div>
+                  <div style={{ background: "#f9fafb", borderRadius: 8, padding: "8px 10px", flex: 1 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "#111827" }}>{c.author?.name}</span>
+                    <span suppressHydrationWarning style={{ fontSize: 11.5, color: "#d1d5db", marginLeft: 6 }}>{timeAgo(c.created_at)}</span>
+                    <p style={{ fontSize: 13, color: "#374151", marginTop: 3, lineHeight: 1.55 }}>{c.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input placeholder="Add a comment..." value={commentText} onChange={e => setCommentText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); postComment(); } }}
+              style={{ flex: 1, fontSize: 13 }} />
+            <button onClick={postComment} disabled={posting || !commentText.trim()} className="btn btn-primary btn-sm" style={{ fontSize: 12 }}>Post</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

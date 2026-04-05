@@ -25,6 +25,7 @@ export default function Navbar() {
     { href: "/jobs", label: "Jobs" },
     { href: "/papers", label: "Research" },
     { href: "/trending", label: "Trending" },
+    { href: "/leaderboard", label: "Leaderboard" },
   ];
 
   useEffect(() => {

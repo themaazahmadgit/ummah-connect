@@ -14,6 +14,7 @@ interface Startup {
 }
 interface Backer { id: string; amount: number; profiles: { name: string; username: string; is_verified: boolean } }
 interface Update { id: string; content: string; created_at: string; profiles: { name: string; username: string } }
+interface StartupComment { id: string; content: string; created_at: string; author: { name: string; username: string } }
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -31,10 +32,13 @@ export default function StartupDetailPage() {
   const [backers, setBackers] = useState<Backer[]>([]);
   const [updates, setUpdates] = useState<Update[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"about" | "updates" | "backers">("about");
+  const [tab, setTab] = useState<"about" | "updates" | "backers" | "comments">("about");
   const [updateText, setUpdateText] = useState("");
   const [posting, setPosting] = useState(false);
   const [toast, setToast] = useState("");
+  const [comments, setComments] = useState<StartupComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentPosting, setCommentPosting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -46,12 +50,26 @@ export default function StartupDetailPage() {
         setUpdates(data.updates || []);
       })
       .finally(() => setLoading(false));
+
+    fetch(`/api/startups/${id}/comments`)
+      .then(r => r.json())
+      .then(data => setComments(data.comments || []))
+      .catch(() => {});
   }, [id]);
 
   const handleBack = async () => {
     if (!startup) return;
     setStartup(s => s ? { ...s, backed: !s.backed, backerCount: s.backed ? s.backerCount - 1 : s.backerCount + 1 } : s);
     await fetch(`/api/startups/${id}/back`, { method: "POST" });
+  };
+
+  const postComment = async () => {
+    if (!commentText.trim()) return;
+    setCommentPosting(true);
+    const res = await fetch(`/api/startups/${id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: commentText }) });
+    const data = await res.json();
+    if (res.ok) { setComments(prev => [...prev, data.comment]); setCommentText(""); }
+    setCommentPosting(false);
   };
 
   const postUpdate = async () => {
@@ -132,7 +150,7 @@ export default function StartupDetailPage() {
 
             {/* Tabs */}
             <div style={{ display: "flex", borderBottom: "1px solid #f3f4f6", marginBottom: 24 }}>
-              {(["about", "updates", "backers"] as const).map(t => (
+              {(["about", "updates", "backers", "comments"] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
                   style={{ padding: "9px 16px", fontSize: 13.5, fontWeight: tab === t ? 600 : 400, cursor: "pointer", border: "none", background: "transparent", color: tab === t ? "#0d7377" : "#6b7280", borderBottom: tab === t ? "2px solid #0d7377" : "2px solid transparent", marginBottom: -1, transition: "all 0.1s", fontFamily: "inherit", textTransform: "capitalize" }}>
                   {t} {t === "updates" ? `(${updates.length})` : t === "backers" ? `(${backers.length})` : ""}
@@ -190,6 +208,35 @@ export default function StartupDetailPage() {
                     {b.profiles?.is_verified && <span className="badge badge-emerald">verified</span>}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {tab === "comments" && (
+              <div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                  <input placeholder="Add a comment..." value={commentText} onChange={e => setCommentText(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); postComment(); } }}
+                    style={{ flex: 1, fontSize: 13 }} />
+                  <button onClick={postComment} disabled={commentPosting || !commentText.trim()} className="btn btn-primary btn-sm">Post</button>
+                </div>
+                {comments.length === 0 ? (
+                  <p style={{ color: "#9ca3af", fontSize: 13.5, textAlign: "center", padding: "40px 0" }}>No comments yet. Start the conversation.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {comments.map(c => (
+                      <div key={c.id} style={{ display: "flex", gap: 10 }}>
+                        <div className="avatar avatar-emerald" style={{ width: 28, height: 28, fontSize: 11, flexShrink: 0 }}>{c.author?.name?.[0]}</div>
+                        <div style={{ background: "#f9fafb", borderRadius: 8, padding: "10px 12px", flex: 1 }}>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{c.author?.name}</span>
+                            <span suppressHydrationWarning style={{ fontSize: 12, color: "#d1d5db" }}>{timeAgo(c.created_at)}</span>
+                          </div>
+                          <p style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.6 }}>{c.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
