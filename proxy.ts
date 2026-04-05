@@ -23,14 +23,14 @@ export async function proxy(req: NextRequest) {
     }
   );
 
-  // Refresh session — do not remove this
-  await supabase.auth.getUser();
+  // Use getSession() instead of getUser() — avoids network call and lock contention
+  await supabase.auth.getSession();
 
   return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
