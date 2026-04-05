@@ -63,6 +63,8 @@ export default function ProfilePage() {
   const [followed, setFollowed] = useState(false);
   const [papers, setPapers] = useState<{ id: string; doi: string; title: string; authors: string[]; journal: string | null; year: number | null; url: string; category: string; relevance_note: string | null; upvoteCount: number }[]>([]);
   const [adminMessages, setAdminMessages] = useState<{ id: string; subject: string; body: string; visibility: string; created_at: string; admin: { name: string; username: string } }[]>([]);
+  const [endorsements, setEndorsements] = useState<{ skill: string; count: number; endorsers: { name: string; username: string }[] }[]>([]);
+  const [endorsingSkill, setEndorsingSkill] = useState("");
   const [githubModal, setGithubModal] = useState(false);
   const [orcidModal, setOrcidModal] = useState(false);
   const [toast, setToast] = useState("");
@@ -98,6 +100,11 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(data => setPapers(data.papers || []))
       .catch(() => {});
+
+    fetch(`/api/profiles/${username}/endorse`)
+      .then(r => r.json())
+      .then(data => setEndorsements(data.endorsements || []))
+      .catch(() => {});
   }, [username]);
 
   const handleFollow = async () => {
@@ -113,11 +120,32 @@ export default function ProfilePage() {
     }
   };
 
+  const handleEndorse = async (skill: string) => {
+    setEndorsingSkill(skill);
+    try {
+      const res = await fetch(`/api/profiles/${username}/endorse`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ skill }) });
+      const data = await res.json();
+      if (res.ok) {
+        setEndorsements(prev => {
+          const existing = prev.find(e => e.skill === skill);
+          if (existing) {
+            if (data.endorsed) return prev.map(e => e.skill === skill ? { ...e, count: e.count + 1 } : e);
+            return prev.map(e => e.skill === skill ? { ...e, count: Math.max(0, e.count - 1) } : e).filter(e => e.count > 0);
+          }
+          return [...prev, { skill, count: 1, endorsers: [] }];
+        });
+        fire(data.endorsed ? `Endorsed ${skill}.` : `Removed endorsement.`);
+      }
+    } catch { fire("Failed."); }
+    finally { setEndorsingSkill(""); }
+  };
+
   const TABS = [
     { id: "posts", label: "Posts", count: stats.posts },
     { id: "ideas", label: "Ideas", count: stats.ideas },
     { id: "papers", label: "Papers", count: papers.length || undefined },
     { id: "backed", label: "Backed" },
+    { id: "endorsements", label: "Endorsements", count: endorsements.length || undefined },
     { id: "about", label: "About" },
     ...(adminMessages.length > 0 ? [{ id: "messages", label: "Messages", count: adminMessages.length }] : []),
   ];
@@ -296,6 +324,47 @@ export default function ProfilePage() {
             {(tab === "ideas" || tab === "backed") && (
               <div style={{ textAlign: "center", padding: "48px 0" }}>
                 <p style={{ fontSize: 13.5, color: "#9ca3af" }}>Nothing yet. Be the first.</p>
+              </div>
+            )}
+
+            {tab === "endorsements" && (
+              <div>
+                {profile.skills.length > 0 && (
+                  <div style={{ marginBottom: 20, padding: "14px 16px", background: "#f9fafb", borderRadius: 10, border: "1px solid #f3f4f6" }}>
+                    <p style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 10 }}>Endorse a skill</p>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {profile.skills.map(skill => (
+                        <button key={skill} onClick={() => handleEndorse(skill)} disabled={endorsingSkill === skill}
+                          className="btn btn-secondary btn-sm" style={{ fontSize: 12 }}>
+                          + {skill}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {endorsements.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 0" }}>
+                    <p style={{ fontSize: 13.5, color: "#9ca3af" }}>No endorsements yet.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {endorsements.sort((a, b) => b.count - a.count).map(e => (
+                      <div key={e.skill} style={{ border: "1px solid #f3f4f6", borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{e.skill}</span>
+                          {e.endorsers.length > 0 && (
+                            <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>Endorsed by {e.endorsers.map(en => en.name).join(", ")}{e.count > 3 ? ` and ${e.count - 3} more` : ""}</p>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#0d7377" }}>{e.count}</span>
+                          <button onClick={() => handleEndorse(e.skill)} disabled={endorsingSkill === e.skill}
+                            className="btn btn-secondary btn-sm" style={{ fontSize: 12 }}>Endorse</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

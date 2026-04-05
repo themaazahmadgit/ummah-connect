@@ -20,8 +20,10 @@ export default function Navbar() {
     { href: "/feed", label: "Feed" },
     { href: "/ideas", label: "Ideas" },
     { href: "/startups", label: "Startups" },
-    { href: "/people", label: "People" },
+    { href: "/events", label: "Events" },
+    { href: "/jobs", label: "Jobs" },
     { href: "/papers", label: "Research" },
+    { href: "/trending", label: "Trending" },
   ];
 
   useEffect(() => {

@@ -296,3 +296,74 @@ create policy "papers_delete_own" on research_papers for delete using (auth.uid(
 create policy "paper_upvotes_read_all" on paper_upvotes for select using (true);
 create policy "paper_upvotes_insert_own" on paper_upvotes for insert with check (auth.uid() = user_id);
 create policy "paper_upvotes_delete_own" on paper_upvotes for delete using (auth.uid() = user_id);
+
+-- events
+create table if not exists events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  title text not null,
+  description text not null,
+  category text not null default 'islam',
+  type text default 'online' check (type in ('online', 'in-person', 'hybrid')),
+  location text,
+  url text,
+  starts_at timestamptz not null,
+  ends_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create table if not exists event_rsvps (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid references events(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  unique(event_id, user_id)
+);
+
+-- jobs
+create table if not exists jobs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  title text not null,
+  company text not null,
+  description text not null,
+  category text not null default 'tech',
+  type text default 'full-time' check (type in ('full-time', 'part-time', 'contract', 'volunteer')),
+  location_type text default 'remote' check (location_type in ('remote', 'onsite', 'hybrid')),
+  location text,
+  salary text,
+  apply_url text,
+  apply_email text,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+-- skill_endorsements
+create table if not exists skill_endorsements (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references profiles(id) on delete cascade not null,
+  endorser_id uuid references profiles(id) on delete cascade not null,
+  skill text not null,
+  created_at timestamptz default now(),
+  unique(profile_id, endorser_id, skill)
+);
+
+alter table events enable row level security;
+alter table event_rsvps enable row level security;
+alter table jobs enable row level security;
+alter table skill_endorsements enable row level security;
+
+create policy "events_read_all" on events for select using (true);
+create policy "events_insert_auth" on events for insert with check (auth.uid() is not null);
+create policy "events_delete_own" on events for delete using (auth.uid() = user_id);
+
+create policy "rsvps_read_all" on event_rsvps for select using (true);
+create policy "rsvps_insert_own" on event_rsvps for insert with check (auth.uid() = user_id);
+create policy "rsvps_delete_own" on event_rsvps for delete using (auth.uid() = user_id);
+
+create policy "jobs_read_all" on jobs for select using (true);
+create policy "jobs_insert_auth" on jobs for insert with check (auth.uid() is not null);
+create policy "jobs_delete_own" on jobs for delete using (auth.uid() = user_id);
+
+create policy "endorsements_read_all" on skill_endorsements for select using (true);
+create policy "endorsements_insert_own" on skill_endorsements for insert with check (auth.uid() = endorser_id);
+create policy "endorsements_delete_own" on skill_endorsements for delete using (auth.uid() = endorser_id);

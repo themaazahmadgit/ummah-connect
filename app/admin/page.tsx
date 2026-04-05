@@ -53,6 +53,7 @@ export default function AdminPage() {
   const [msgForm, setMsgForm] = useState({ recipient_username: "", subject: "", body: "", visibility: "private" });
   const [msgError, setMsgError] = useState("");
   const [msgSending, setMsgSending] = useState(false);
+  const [digestSending, setDigestSending] = useState(false);
 
   const fire = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
@@ -94,6 +95,17 @@ export default function AdminPage() {
       fetchUsers(search);
     }
   }, [tab, fetchUsers, search]);
+
+  const handleSendDigest = async () => {
+    setDigestSending(true);
+    try {
+      const res = await fetch("/api/admin/digest", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { fire(data.error || "Failed."); return; }
+      fire(`Jumu'ah digest sent to ${data.sent} users.`);
+    } catch { fire("Failed to send digest."); }
+    finally { setDigestSending(false); }
+  };
 
   const handleSendBroadcast = async () => {
     setBroadcastError("");
@@ -137,7 +149,7 @@ export default function AdminPage() {
     finally { setMsgSending(false); }
   };
 
-  const TABS = ["broadcast", "message", "users", "analytics"];
+  const TABS = ["broadcast", "message", "digest", "users", "analytics"];
 
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff" }}>
@@ -265,6 +277,25 @@ export default function AdminPage() {
                 {msgError && <p style={{ fontSize: 13, color: "#dc2626" }}>{msgError}</p>}
                 <button onClick={handleSendMessage} disabled={msgSending} className="btn btn-primary" style={{ justifyContent: "center", padding: "10px" }}>
                   {msgSending ? "Sending..." : "Send message"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "digest" && (
+          <div style={{ maxWidth: 480 }}>
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #f3f4f6", background: "#fafafa" }}>
+                <h2 style={{ fontSize: 14, fontWeight: 600 }}>Jumu'ah Weekly Digest</h2>
+                <p style={{ fontSize: 12.5, color: "#9ca3af", marginTop: 2 }}>Sends a weekly email digest to all users with top posts, ideas, papers, and startups from the past 7 days.</p>
+              </div>
+              <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ padding: "12px 14px", background: "#f5fbfb", border: "1px solid #b2e4e6", borderRadius: 8 }}>
+                  <p style={{ fontSize: 13, color: "#0a5f63", lineHeight: 1.6 }}>This will send the Jumu'ah digest email to every registered user. Best to send on Fridays as it is a sunnah. The digest pulls the most engaged content from the last 7 days.</p>
+                </div>
+                <button onClick={handleSendDigest} disabled={digestSending} className="btn btn-primary" style={{ justifyContent: "center", padding: "10px" }}>
+                  {digestSending ? "Sending..." : "Send Jumu'ah digest now"}
                 </button>
               </div>
             </div>
