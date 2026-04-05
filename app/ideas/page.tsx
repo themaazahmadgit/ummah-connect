@@ -1,0 +1,275 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import Navbar from "@/components/Navbar";
+import { CATEGORIES } from "@/lib/data";
+
+interface IdeaAuthor {
+  id: string;
+  name: string;
+  username: string;
+  location: string | null;
+}
+
+interface Idea {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  tags: string[];
+  created_at: string;
+  author: IdeaAuthor;
+  upvoteCount: number;
+  contributorCount: number;
+  upvoted: boolean;
+  joined: boolean;
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d`;
+  return `${Math.floor(days / 7)}w`;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  "open": "#059669",
+  "in-progress": "#2563eb",
+  "seeking-contributors": "#d97706",
+  "completed": "#6b7280",
+};
+
+function IdeaCard({ idea, onUpvote, onJoin }: { idea: Idea; onUpvote: (id: string) => void; onJoin: (id: string) => void }) {
+  return (
+    <div className="card" style={{ padding: "16px 18px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+        <h3 style={{ fontSize: 14.5, fontWeight: 600, color: "#111827", lineHeight: 1.4 }}>{idea.title}</h3>
+        <span style={{ fontSize: 11, color: STATUS_COLORS[idea.status] || "#6b7280", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>
+          {idea.status}
+        </span>
+      </div>
+      <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, marginBottom: 12 }}>{idea.description}</p>
+      {idea.tags.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+          {idea.tags.map(t => <span key={t} className="tag">#{t}</span>)}
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid #f9fafb" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="avatar avatar-emerald" style={{ width: 22, height: 22, fontSize: 10 }}>{idea.author?.name?.[0] || "U"}</div>
+          <span style={{ fontSize: 12.5, color: "#6b7280" }}>{idea.author?.name}</span>
+          <span style={{ fontSize: 12, color: "#d1d5db" }}>{timeAgo(idea.created_at)}</span>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => onUpvote(idea.id)}
+            className={`btn ${idea.upvoted ? "btn-primary" : "btn-secondary"} btn-sm`}
+            style={{ fontSize: 11.5 }}>
+            ▲ {idea.upvoteCount}
+          </button>
+          <button onClick={() => onJoin(idea.id)}
+            className={`btn ${idea.joined ? "btn-primary" : "btn-secondary"} btn-sm`}
+            style={{ fontSize: 11.5 }}>
+            {idea.joined ? "Joined" : "Join"} · {idea.contributorCount}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function IdeasPage() {
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", category: "tech", tags: "" });
+  const [toast, setToast] = useState("");
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const fetchIdeas = useCallback(async (category: string) => {
+    setLoading(true);
+    setFetchError("");
+    try {
+      const params = category !== "all" ? `?category=${category}` : "";
+      const res = await fetch(`/api/ideas${params}`);
+      const data = await res.json();
+      if (!res.ok) { setFetchError(data.error || "Failed to load ideas."); return; }
+      setIdeas(data.ideas || []);
+    } catch {
+      setFetchError("Failed to load ideas.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIdeas(activeCategory);
+  }, [activeCategory, fetchIdeas]);
+
+  const handleSubmit = async () => {
+    setFormError("");
+    if (!form.title || !form.description) { setFormError("Title and description are required."); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          category: form.category,
+          tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setFormError(data.error || "Failed to publish idea."); return; }
+      setIdeas(prev => [data.idea, ...prev]);
+      setToast("Idea published.");
+      setShowModal(false);
+      setForm({ title: "", description: "", category: "tech", tags: "" });
+      setTimeout(() => setToast(""), 2500);
+    } catch {
+      setFormError("Failed to publish idea.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpvote = async (ideaId: string) => {
+    setIdeas(prev =>
+      prev.map(i =>
+        i.id === ideaId
+          ? { ...i, upvoted: !i.upvoted, upvoteCount: i.upvoted ? i.upvoteCount - 1 : i.upvoteCount + 1 }
+          : i
+      )
+    );
+    try {
+      await fetch(`/api/ideas/${ideaId}/upvote`, { method: "POST" });
+    } catch {
+      setIdeas(prev =>
+        prev.map(i =>
+          i.id === ideaId
+            ? { ...i, upvoted: !i.upvoted, upvoteCount: i.upvoted ? i.upvoteCount - 1 : i.upvoteCount + 1 }
+            : i
+        )
+      );
+    }
+  };
+
+  const handleJoin = async (ideaId: string) => {
+    setIdeas(prev =>
+      prev.map(i =>
+        i.id === ideaId
+          ? { ...i, joined: !i.joined, contributorCount: i.joined ? i.contributorCount - 1 : i.contributorCount + 1 }
+          : i
+      )
+    );
+    try {
+      await fetch(`/api/ideas/${ideaId}/join`, { method: "POST" });
+    } catch {
+      setIdeas(prev =>
+        prev.map(i =>
+          i.id === ideaId
+            ? { ...i, joined: !i.joined, contributorCount: i.joined ? i.contributorCount - 1 : i.contributorCount + 1 }
+            : i
+        )
+      );
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+      <Navbar />
+
+      <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32, gap: 20, flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Ideas</h1>
+            <p style={{ fontSize: 13.5, color: "#6b7280" }}>Post an idea publicly. Find contributors. Make it real.</p>
+          </div>
+          <button onClick={() => setShowModal(true)} className="btn btn-primary">New idea</button>
+        </div>
+
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 28 }}>
+          {CATEGORIES.map(cat => (
+            <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
+              className={`pill ${activeCategory === cat.id ? "pill-active" : ""}`}>
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <p style={{ color: "#9ca3af", fontSize: 13.5 }}>Loading...</p>
+          </div>
+        ) : fetchError ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <p style={{ color: "#dc2626", fontSize: 13.5 }}>{fetchError}</p>
+          </div>
+        ) : ideas.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <p style={{ color: "#9ca3af", fontSize: 13.5, marginBottom: 12 }}>Nothing yet. Be the first.</p>
+            <button onClick={() => setShowModal(true)} className="btn btn-secondary">Post the first idea</button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))", gap: 12 }}>
+            {ideas.map(idea => <IdeaCard key={idea.id} idea={idea} onUpvote={handleUpvote} onJoin={handleJoin} />)}
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
+          <div className="modal">
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 600 }}>New idea</h2>
+              <button onClick={() => setShowModal(false)} className="icon-btn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Title</label>
+                <input placeholder="What's the idea?" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Description</label>
+                <textarea placeholder="Describe the problem, solution, and how people can contribute..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ resize: "none", minHeight: 100 }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Category</label>
+                  <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                    {CATEGORIES.filter(c => c.id !== "all").map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Tags</label>
+                  <input placeholder="comma, separated" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} />
+                </div>
+              </div>
+              {formError && <p style={{ fontSize: 13, color: "#dc2626" }}>{formError}</p>}
+              <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+                <button onClick={() => setShowModal(false)} className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }}>Cancel</button>
+                <button onClick={handleSubmit} disabled={submitting} className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>
+                  {submitting ? "Publishing..." : "Publish idea"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
+}
