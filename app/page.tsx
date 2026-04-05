@@ -15,7 +15,7 @@ export default function Home() {
           </div>
 
           <h1 style={{ fontSize: "clamp(32px, 5.5vw, 52px)", fontWeight: 800, color: "#111827", lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: 20 }}>
-            Your ideas deserve more<br />than a group chat.
+            Chat is cooked.<br />The vision needs more.
           </h1>
 
           <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.7, maxWidth: 480, margin: "0 auto 36px" }}>
