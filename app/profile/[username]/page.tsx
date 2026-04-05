@@ -61,6 +61,7 @@ export default function ProfilePage() {
 
   const [tab, setTab] = useState("posts");
   const [followed, setFollowed] = useState(false);
+  const [adminMessages, setAdminMessages] = useState<{ id: string; subject: string; body: string; visibility: string; created_at: string; admin: { name: string; username: string } }[]>([]);
   const [githubModal, setGithubModal] = useState(false);
   const [orcidModal, setOrcidModal] = useState(false);
   const [toast, setToast] = useState("");
@@ -86,6 +87,11 @@ export default function ProfilePage() {
       })
       .catch(() => setError("Failed to load profile."))
       .finally(() => setLoading(false));
+
+    fetch(`/api/admin/message?username=${username}`)
+      .then(r => r.json())
+      .then(data => setAdminMessages(data.messages || []))
+      .catch(() => {});
   }, [username]);
 
   const handleFollow = async () => {
@@ -106,6 +112,7 @@ export default function ProfilePage() {
     { id: "ideas", label: "Ideas", count: stats.ideas },
     { id: "backed", label: "Backed" },
     { id: "about", label: "About" },
+    ...(adminMessages.length > 0 ? [{ id: "messages", label: "Messages", count: adminMessages.length }] : []),
   ];
 
   if (loading) {
@@ -253,6 +260,27 @@ export default function ProfilePage() {
             {(tab === "ideas" || tab === "backed") && (
               <div style={{ textAlign: "center", padding: "48px 0" }}>
                 <p style={{ fontSize: 13.5, color: "#9ca3af" }}>Nothing yet. Be the first.</p>
+              </div>
+            )}
+
+            {tab === "messages" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {adminMessages.map(m => (
+                  <div key={m.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+                    <div style={{ padding: "10px 14px", background: "#fafafa", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <p style={{ fontSize: 13.5, fontWeight: 600, color: "#111827" }}>{m.subject}</p>
+                        <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>From admin · {new Date(m.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 4, background: m.visibility === "public" ? "#fffbeb" : "#e6f7f8", color: m.visibility === "public" ? "#92400e" : "#0a5f63", border: `1px solid ${m.visibility === "public" ? "#fde68a" : "#b2e4e6"}` }}>
+                        {m.visibility}
+                      </span>
+                    </div>
+                    <div style={{ padding: "12px 14px" }}>
+                      <p style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.65 }}>{m.body}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

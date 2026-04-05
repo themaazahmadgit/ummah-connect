@@ -222,3 +222,42 @@ create policy "replies_delete_own" on post_replies for delete using (auth.uid() 
 create policy "bookmarks_read_own" on bookmarks for select using (auth.uid() = user_id);
 create policy "bookmarks_insert_own" on bookmarks for insert with check (auth.uid() = user_id);
 create policy "bookmarks_delete_own" on bookmarks for delete using (auth.uid() = user_id);
+
+-- notifications
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  type text not null, -- 'like', 'reply', 'follow', 'admin_message'
+  actor_id uuid references profiles(id) on delete cascade,
+  post_id uuid references posts(id) on delete cascade,
+  idea_id uuid references ideas(id) on delete cascade,
+  message text,
+  read boolean default false,
+  created_at timestamptz default now()
+);
+
+-- admin_messages
+create table if not exists admin_messages (
+  id uuid primary key default gen_random_uuid(),
+  admin_id uuid references profiles(id) on delete cascade not null,
+  recipient_id uuid references profiles(id) on delete cascade not null,
+  subject text not null,
+  body text not null,
+  visibility text default 'private' check (visibility in ('private', 'public')),
+  created_at timestamptz default now()
+);
+
+alter table notifications enable row level security;
+alter table admin_messages enable row level security;
+
+create policy "notifs_read_own" on notifications for select using (auth.uid() = user_id);
+create policy "notifs_insert_system" on notifications for insert with check (true);
+create policy "notifs_update_own" on notifications for update using (auth.uid() = user_id);
+
+create policy "admin_msgs_read" on admin_messages for select using (
+  auth.uid() = recipient_id or
+  exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+);
+create policy "admin_msgs_insert" on admin_messages for insert with check (
+  exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+);

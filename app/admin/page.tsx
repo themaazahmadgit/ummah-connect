@@ -50,6 +50,9 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [userTotal, setUserTotal] = useState(0);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [msgForm, setMsgForm] = useState({ recipient_username: "", subject: "", body: "", visibility: "private" });
+  const [msgError, setMsgError] = useState("");
+  const [msgSending, setMsgSending] = useState(false);
 
   const fire = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
@@ -120,7 +123,21 @@ export default function AdminPage() {
     u.username.toLowerCase().includes(search.toLowerCase())
   );
 
-  const TABS = ["broadcast", "users", "analytics"];
+  const handleSendMessage = async () => {
+    setMsgError("");
+    if (!msgForm.recipient_username || !msgForm.subject || !msgForm.body) { setMsgError("All fields required."); return; }
+    setMsgSending(true);
+    try {
+      const res = await fetch("/api/admin/message", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(msgForm) });
+      const data = await res.json();
+      if (!res.ok) { setMsgError(data.error || "Failed to send."); return; }
+      fire(`Message sent to @${msgForm.recipient_username}.`);
+      setMsgForm({ recipient_username: "", subject: "", body: "", visibility: "private" });
+    } catch { setMsgError("Failed to send."); }
+    finally { setMsgSending(false); }
+  };
+
+  const TABS = ["broadcast", "message", "users", "analytics"];
 
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff" }}>
@@ -202,6 +219,54 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "message" && (
+          <div style={{ maxWidth: 520 }}>
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #f3f4f6", background: "#fafafa" }}>
+                <h2 style={{ fontSize: 14, fontWeight: 600 }}>Send message to user</h2>
+                <p style={{ fontSize: 12.5, color: "#9ca3af", marginTop: 2 }}>Admin message. You choose who sees it.</p>
+              </div>
+              <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Recipient username</label>
+                  <input placeholder="username (without @)" value={msgForm.recipient_username} onChange={e => setMsgForm({ ...msgForm, recipient_username: e.target.value })} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Subject</label>
+                  <input placeholder="Message subject" value={msgForm.subject} onChange={e => setMsgForm({ ...msgForm, subject: e.target.value })} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Message</label>
+                  <textarea placeholder="Write your message..." value={msgForm.body} onChange={e => setMsgForm({ ...msgForm, body: e.target.value })} style={{ resize: "none", minHeight: 100 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 8 }}>Visibility</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[["private", "Private", "Only visible to the user"], ["public", "Public", "Visible on their profile to everyone"]].map(([val, label, desc]) => (
+                      <button key={val} onClick={() => setMsgForm({ ...msgForm, visibility: val })}
+                        style={{ flex: 1, padding: "10px 12px", border: `1px solid ${msgForm.visibility === val ? "#0d7377" : "#e5e7eb"}`, borderRadius: 8, background: msgForm.visibility === val ? "#e6f7f8" : "#fff", cursor: "pointer", textAlign: "left", transition: "all 0.1s" }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: msgForm.visibility === val ? "#0d7377" : "#374151", marginBottom: 2 }}>{label}</p>
+                        <p style={{ fontSize: 11.5, color: "#9ca3af" }}>{desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ padding: "10px 12px", background: msgForm.visibility === "public" ? "#fffbeb" : "#f5fbfb", border: `1px solid ${msgForm.visibility === "public" ? "#fde68a" : "#b2e4e6"}`, borderRadius: 7 }}>
+                  <p style={{ fontSize: 12.5, color: msgForm.visibility === "public" ? "#92400e" : "#0a5f63" }}>
+                    {msgForm.visibility === "public"
+                      ? "This message will appear publicly on the user's profile."
+                      : "This message will only be visible to the user in their notifications."}
+                  </p>
+                </div>
+                {msgError && <p style={{ fontSize: 13, color: "#dc2626" }}>{msgError}</p>}
+                <button onClick={handleSendMessage} disabled={msgSending} className="btn btn-primary" style={{ justifyContent: "center", padding: "10px" }}>
+                  {msgSending ? "Sending..." : "Send message"}
+                </button>
+              </div>
             </div>
           </div>
         )}
