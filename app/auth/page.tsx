@@ -13,6 +13,11 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resetSent, setResetSent] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   const toggleExpertise = (id: string) =>
     setForm(p => ({ ...p, expertise: p.expertise.includes(id) ? p.expertise.filter(e => e !== id) : [...p.expertise, id] }));
@@ -55,6 +60,33 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSendOtp = async () => {
+    setError("");
+    if (!form.phone) { setError("Phone number is required."); return; }
+    setSendingOtp(true);
+    try {
+      const res = await fetch("/api/auth/send-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: form.phone }) });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Failed to send OTP."); return; }
+      setOtpSent(true);
+    } catch { setError("Failed to send OTP."); }
+    finally { setSendingOtp(false); }
+  };
+
+  const handleVerifyOtp = async () => {
+    setError("");
+    if (!otpCode) { setError("Enter the OTP code."); return; }
+    setVerifyingOtp(true);
+    try {
+      const res = await fetch("/api/auth/verify-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: form.phone, token: otpCode }) });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Invalid OTP."); return; }
+      setPhoneVerified(true);
+      setStep(2);
+    } catch { setError("Verification failed."); }
+    finally { setVerifyingOtp(false); }
   };
 
   const handleSignup = async () => {
@@ -174,32 +206,76 @@ export default function AuthPage() {
             ) : (
               <div>
                 <div style={{ display: "flex", gap: 6, padding: "14px 24px", borderBottom: "1px solid #f3f4f6" }}>
-                  {[1, 2, 3].map(s => (
-                    <div key={s} style={{ flex: 1, height: 2, borderRadius: 999, background: s <= step ? "#059669" : "#e5e7eb", transition: "background 0.2s" }} />
+                  {[1, 2, 3, 4].map(s => (
+                    <div key={s} style={{ flex: 1, height: 2, borderRadius: 999, background: s <= step ? "#0d7377" : "#e5e7eb", transition: "background 0.2s" }} />
                   ))}
                 </div>
 
                 <div style={{ padding: 24 }}>
                   {step === 1 && (
                     <div>
-                      <h2 style={{ fontSize: 16, marginBottom: 4 }}>Create your profile</h2>
-                      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Step 1 of 3</p>
+                      <h2 style={{ fontSize: 16, marginBottom: 4 }}>Verify your phone</h2>
+                      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Step 1 of 4 — required for account security</p>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        <input placeholder="Full name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-                        <input placeholder="Username" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} />
-                        <input type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                        <input type="tel" placeholder="Phone (optional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                        <input type="password" placeholder="Password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-                        {error && <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>}
-                        <button onClick={() => { setError(""); setStep(2); }} className="btn btn-primary" style={{ justifyContent: "center" }}>Continue</button>
+                        {!otpSent ? (
+                          <>
+                            <div>
+                              <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Phone number <span style={{ color: "#dc2626" }}>*</span></label>
+                              <input type="tel" placeholder="+44 7700 900000" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                              <p style={{ fontSize: 11.5, color: "#9ca3af", marginTop: 4 }}>Include country code e.g. +44, +1, +92</p>
+                            </div>
+                            {error && <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>}
+                            <button onClick={handleSendOtp} disabled={sendingOtp || !form.phone} className="btn btn-primary" style={{ justifyContent: "center" }}>
+                              {sendingOtp ? "Sending..." : "Send OTP"}
+                            </button>
+                          </>
+                        ) : !phoneVerified ? (
+                          <>
+                            <div style={{ padding: "10px 12px", background: "#f5fbfb", border: "1px solid #b2e4e6", borderRadius: 7 }}>
+                              <p style={{ fontSize: 13, color: "#0a5f63" }}>OTP sent to <strong>{form.phone}</strong></p>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Enter 6-digit code</label>
+                              <input placeholder="123456" value={otpCode} onChange={e => setOtpCode(e.target.value)} maxLength={6} style={{ letterSpacing: "0.2em", fontSize: 18, textAlign: "center" }} />
+                            </div>
+                            {error && <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>}
+                            <button onClick={handleVerifyOtp} disabled={verifyingOtp || otpCode.length < 6} className="btn btn-primary" style={{ justifyContent: "center" }}>
+                              {verifyingOtp ? "Verifying..." : "Verify OTP"}
+                            </button>
+                            <button onClick={() => { setOtpSent(false); setOtpCode(""); setError(""); }} className="btn btn-ghost" style={{ justifyContent: "center", fontSize: 12.5 }}>
+                              Change number
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     </div>
                   )}
 
                   {step === 2 && (
                     <div>
+                      <h2 style={{ fontSize: 16, marginBottom: 4 }}>Create your account</h2>
+                      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Step 2 of 4</p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <input placeholder="Full name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                        <input placeholder="Username" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} />
+                        <input type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                        <input type="password" placeholder="Password (min 8 chars)" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+                        {error && <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>}
+                        <button onClick={() => {
+                          setError("");
+                          if (!form.name || !form.username || !form.email || !form.password) { setError("All fields required."); return; }
+                          if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
+                          setStep(3);
+                        }} className="btn btn-primary" style={{ justifyContent: "center" }}>Continue</button>
+                        <button onClick={() => setStep(1)} className="btn btn-ghost" style={{ justifyContent: "center" }}>Back</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 3 && (
+                    <div>
                       <h2 style={{ fontSize: 16, marginBottom: 4 }}>About you</h2>
-                      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Step 2 of 3</p>
+                      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Step 3 of 4</p>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         <input placeholder="Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
                         <textarea placeholder="Short bio (160 chars max)" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} style={{ resize: "none", minHeight: 80 }} maxLength={160} />
@@ -216,17 +292,17 @@ export default function AuthPage() {
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={() => setStep(1)} className="btn btn-ghost" style={{ flex: 1 }}>Back</button>
-                          <button onClick={() => setStep(3)} className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>Continue</button>
+                          <button onClick={() => setStep(2)} className="btn btn-ghost" style={{ flex: 1 }}>Back</button>
+                          <button onClick={() => setStep(4)} className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>Continue</button>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {step === 3 && (
+                  {step === 4 && (
                     <div>
                       <h2 style={{ fontSize: 16, marginBottom: 4 }}>Get verified</h2>
-                      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Step 3 of 3 — optional</p>
+                      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Step 4 of 4 — optional</p>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         <div style={{ padding: "12px 14px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8 }}>
                           <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>GitHub username</label>
@@ -240,7 +316,7 @@ export default function AuthPage() {
                         </div>
                         {error && <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>}
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={() => setStep(2)} className="btn btn-ghost" style={{ flex: 1 }}>Back</button>
+                          <button onClick={() => setStep(3)} className="btn btn-ghost" style={{ flex: 1 }}>Back</button>
                           <button onClick={handleSignup} disabled={loading} className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>
                             {loading ? "Creating account..." : "Create account"}
                           </button>

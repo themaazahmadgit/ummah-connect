@@ -7,25 +7,42 @@ import { CATEGORIES } from "@/lib/data";
 interface Profile {
   name: string; bio: string; role: string; location: string;
   phone: string; website: string; github_username: string; orcid_id: string;
-  expertise: string[]; skills: string[];
+  expertise: string[]; skills: string[]; avatar_url?: string;
 }
 
 export default function SettingsPage() {
-  const [form, setForm] = useState<Profile>({ name: "", bio: "", role: "", location: "", phone: "", website: "", github_username: "", orcid_id: "", expertise: [], skills: [] });
+  const [form, setForm] = useState<Profile>({ name: "", bio: "", role: "", location: "", phone: "", website: "", github_username: "", orcid_id: "", expertise: [], skills: [], avatar_url: "" });
   const [skillInput, setSkillInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings").then(r => r.json()).then(data => {
       if (data.profile) {
         const p = data.profile;
-        setForm({ name: p.name || "", bio: p.bio || "", role: p.role || "", location: p.location || "", phone: p.phone || "", website: p.website || "", github_username: p.github_username || "", orcid_id: p.orcid_id || "", expertise: p.expertise || [], skills: p.skills || [] });
+        setForm({ name: p.name || "", bio: p.bio || "", role: p.role || "", location: p.location || "", phone: p.phone || "", website: p.website || "", github_username: p.github_username || "", orcid_id: p.orcid_id || "", expertise: p.expertise || [], skills: p.skills || [], avatar_url: p.avatar_url || "" });
       }
     }).finally(() => setLoading(false));
   }, []);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("avatar", file);
+      const res = await fetch("/api/upload/avatar", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Upload failed."); return; }
+      setForm(f => ({ ...f, avatar_url: data.avatar_url }));
+      setToast("Profile picture updated."); setTimeout(() => setToast(""), 2500);
+    } catch { setError("Upload failed."); }
+    finally { setAvatarUploading(false); }
+  };
 
   const toggleExpertise = (id: string) =>
     setForm(f => ({ ...f, expertise: f.expertise.includes(id) ? f.expertise.filter(e => e !== id) : [...f.expertise, id] }));
@@ -66,6 +83,31 @@ export default function SettingsPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Avatar */}
+          <section style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ padding: "12px 18px", background: "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+              <p style={{ fontSize: 13.5, fontWeight: 600 }}>Profile picture</p>
+            </div>
+            <div style={{ padding: 18, display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                {form.avatar_url ? (
+                  <img src={form.avatar_url} alt="avatar" style={{ width: 64, height: 64, borderRadius: 12, objectFit: "cover", border: "2px solid #e5e7eb" }} />
+                ) : (
+                  <div className="avatar avatar-emerald" style={{ width: 64, height: 64, fontSize: 22, borderRadius: 12 }}>{form.name?.[0] || "?"}</div>
+                )}
+              </div>
+              <div>
+                <label htmlFor="avatar-upload" style={{ cursor: "pointer" }}>
+                  <div className="btn btn-secondary" style={{ fontSize: 13, display: "inline-flex" }}>
+                    {avatarUploading ? "Uploading..." : "Change photo"}
+                  </div>
+                </label>
+                <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} disabled={avatarUploading} />
+                <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 5 }}>JPG, PNG or WebP. Max 3MB.</p>
+              </div>
+            </div>
+          </section>
+
           {/* Basic */}
           <section style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
             <div style={{ padding: "12px 18px", background: "#fafafa", borderBottom: "1px solid #f3f4f6" }}>

@@ -444,3 +444,12 @@ create policy "idea_comments_delete_own" on idea_comments for delete using (auth
 create policy "startup_comments_read_all" on startup_comments for select using (true);
 create policy "startup_comments_insert_auth" on startup_comments for insert with check (auth.uid() is not null);
 create policy "startup_comments_delete_own" on startup_comments for delete using (auth.uid() = user_id);
+
+-- avatar_url on profiles
+alter table profiles add column if not exists avatar_url text;
+
+-- Storage: avatars bucket (run this in Supabase dashboard Storage tab or SQL)
+-- insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true) on conflict do nothing;
+-- create policy "avatars_public_read" on storage.objects for select using (bucket_id = 'avatars');
+-- create policy "avatars_upload_own" on storage.objects for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+-- create policy "avatars_update_own" on storage.objects for update using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);

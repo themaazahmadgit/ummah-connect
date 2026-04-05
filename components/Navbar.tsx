@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import Avatar from "@/components/Avatar";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -114,9 +115,7 @@ export default function Navbar() {
                   style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 8, transition: "background 0.1s" }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f5fbfb"}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "none"}>
-                  <div className="avatar avatar-emerald" style={{ width: 28, height: 28, fontSize: 11, borderRadius: 7 }}>
-                    {profile.name[0]}
-                  </div>
+                  <Avatar name={profile.name} url={(profile as unknown as { avatar_url?: string | null }).avatar_url} size={28} radius={7} />
                   <span style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>{profile.name.split(" ")[0]}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5"
                     style={{ transform: menuOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>

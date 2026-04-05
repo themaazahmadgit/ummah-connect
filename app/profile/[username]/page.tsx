@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import Avatar from "@/components/Avatar";
 import { CATEGORIES } from "@/lib/data";
 
 interface Profile {
@@ -22,6 +23,7 @@ interface Profile {
   is_verified: boolean;
   github_verified: boolean;
   orcid_verified: boolean;
+  avatar_url: string | null;
   created_at: string;
 }
 
@@ -183,9 +185,7 @@ export default function ProfilePage() {
             {/* Profile header */}
             <div style={{ marginBottom: 28 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
-                <div className="avatar avatar-emerald" style={{ width: 56, height: 56, fontSize: 20, borderRadius: 12 }}>
-                  {profile.name[0]}
-                </div>
+                <Avatar name={profile.name} url={profile.avatar_url} size={56} radius={12} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                     <h1 style={{ fontSize: 18, fontWeight: 700 }}>{profile.name}</h1>
