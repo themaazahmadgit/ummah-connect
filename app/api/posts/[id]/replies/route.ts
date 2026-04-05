@@ -34,5 +34,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Notify post owner
+  const { data: post } = await admin.from("posts").select("user_id").eq("id", id).single();
+  if (post && post.user_id !== user.id) {
+    await admin.from("notifications").insert({ user_id: post.user_id, type: "reply", actor_id: user.id, post_id: id, message: "replied to your post" });
+  }
+
   return NextResponse.json({ reply: { ...reply, profiles: profile } });
 }

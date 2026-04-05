@@ -25,6 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ use
   }
 
   await admin.from("skill_endorsements").insert({ profile_id: profile.id, endorser_id: user.id, skill });
+  await admin.from("notifications").insert({ user_id: profile.id, type: "endorsement", actor_id: user.id, message: `endorsed your skill: ${skill}` });
   return NextResponse.json({ endorsed: true });
 }
 

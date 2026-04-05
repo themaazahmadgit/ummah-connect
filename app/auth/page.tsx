@@ -90,7 +90,7 @@ export default function AuthPage() {
         body: JSON.stringify({ email: form.email, password: form.password }),
       });
       if (loginRes.ok) {
-        router.push("/feed");
+        router.push("/onboarding");
       } else {
         router.push("/auth");
       }

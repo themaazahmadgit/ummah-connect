@@ -367,3 +367,80 @@ create policy "jobs_delete_own" on jobs for delete using (auth.uid() = user_id);
 create policy "endorsements_read_all" on skill_endorsements for select using (true);
 create policy "endorsements_insert_own" on skill_endorsements for insert with check (auth.uid() = endorser_id);
 create policy "endorsements_delete_own" on skill_endorsements for delete using (auth.uid() = endorser_id);
+
+-- groups
+create table if not exists groups (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  name text not null,
+  description text not null,
+  category text not null default 'islam',
+  type text default 'public' check (type in ('public', 'private')),
+  member_count integer default 1,
+  created_at timestamptz default now()
+);
+
+create table if not exists group_members (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid references groups(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  role text default 'member' check (role in ('admin', 'member')),
+  created_at timestamptz default now(),
+  unique(group_id, user_id)
+);
+
+create table if not exists group_posts (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid references groups(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- idea_comments
+create table if not exists idea_comments (
+  id uuid primary key default gen_random_uuid(),
+  idea_id uuid references ideas(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- startup_comments
+create table if not exists startup_comments (
+  id uuid primary key default gen_random_uuid(),
+  startup_id uuid references startups(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+alter table groups enable row level security;
+alter table group_members enable row level security;
+alter table group_posts enable row level security;
+alter table idea_comments enable row level security;
+alter table startup_comments enable row level security;
+
+create policy "groups_read_public" on groups for select using (type = 'public' or exists (select 1 from group_members where group_id = id and user_id = auth.uid()));
+create policy "groups_insert_auth" on groups for insert with check (auth.uid() is not null);
+create policy "groups_delete_own" on groups for delete using (auth.uid() = user_id);
+
+create policy "group_members_read_all" on group_members for select using (true);
+create policy "group_members_insert_own" on group_members for insert with check (auth.uid() = user_id);
+create policy "group_members_delete_own" on group_members for delete using (auth.uid() = user_id);
+
+create policy "group_posts_read" on group_posts for select using (
+  exists (select 1 from groups where id = group_id and (type = 'public' or exists (select 1 from group_members where group_id = group_posts.group_id and user_id = auth.uid())))
+);
+create policy "group_posts_insert" on group_posts for insert with check (
+  auth.uid() is not null and exists (select 1 from group_members where group_id = group_posts.group_id and user_id = auth.uid())
+);
+create policy "group_posts_delete_own" on group_posts for delete using (auth.uid() = user_id);
+
+create policy "idea_comments_read_all" on idea_comments for select using (true);
+create policy "idea_comments_insert_auth" on idea_comments for insert with check (auth.uid() is not null);
+create policy "idea_comments_delete_own" on idea_comments for delete using (auth.uid() = user_id);
+
+create policy "startup_comments_read_all" on startup_comments for select using (true);
+create policy "startup_comments_insert_auth" on startup_comments for insert with check (auth.uid() is not null);
+create policy "startup_comments_delete_own" on startup_comments for delete using (auth.uid() = user_id);

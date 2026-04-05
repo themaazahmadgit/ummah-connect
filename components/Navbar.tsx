@@ -20,6 +20,7 @@ export default function Navbar() {
     { href: "/feed", label: "Feed" },
     { href: "/ideas", label: "Ideas" },
     { href: "/startups", label: "Startups" },
+    { href: "/groups", label: "Groups" },
     { href: "/events", label: "Events" },
     { href: "/jobs", label: "Jobs" },
     { href: "/papers", label: "Research" },

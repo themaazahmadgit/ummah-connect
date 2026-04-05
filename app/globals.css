@@ -424,3 +424,46 @@ select option { background: #fff; }
 }
 .upvote-btn:hover { border-color: #b2e4e6; color: #0d7377; }
 .upvote-btn.active { background: #e6f7f8; border-color: #7ecfd2; color: #0d7377; }
+
+/* ── Mobile responsive ────────────────────────── */
+
+@media (max-width: 768px) {
+  .container { padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* Navbar: hide text links, show hamburger menu via dropdown only */
+  .nav-links { display: none !important; }
+
+  /* Grid layouts → single column */
+  [style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Profile 2-col → stack */
+  [style*="grid-template-columns: 1fr 240px"],
+  [style*="grid-template-columns: 1fr 260px"],
+  [style*="grid-template-columns: 1fr 300px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Sidebar sticky → normal flow on mobile */
+  aside[style*="position: sticky"] {
+    position: static !important;
+  }
+
+  /* Modal full-width */
+  .modal { width: calc(100vw - 32px) !important; margin: 16px !important; }
+
+  /* Feed input full width */
+  textarea, input[type="text"], input[type="email"], input[type="password"], input[type="datetime-local"], select {
+    font-size: 16px !important; /* prevent iOS zoom */
+  }
+
+  /* Cards min-width fix */
+  [style*="minmax(340px"] { grid-template-columns: 1fr !important; }
+  [style*="minmax(320px"] { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+  h1[style*="font-size: 22"] { font-size: 18px !important; }
+  .btn { padding: 7px 12px !important; font-size: 12.5px !important; }
+}
