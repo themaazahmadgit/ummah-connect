@@ -187,3 +187,38 @@ create policy "broadcasts_read_all" on broadcasts for select using (true);
 create policy "broadcasts_insert_admin" on broadcasts for insert with check (
   exists (select 1 from profiles where id = auth.uid() and is_admin = true)
 );
+
+-- ============ FEATURE ADDITIONS ============
+
+-- post_replies
+create table if not exists post_replies (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid references posts(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+-- bookmarks
+create table if not exists bookmarks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  post_id uuid references posts(id) on delete cascade,
+  idea_id uuid references ideas(id) on delete cascade,
+  startup_id uuid references startups(id) on delete cascade,
+  created_at timestamptz default now(),
+  unique(user_id, post_id),
+  unique(user_id, idea_id),
+  unique(user_id, startup_id)
+);
+
+alter table post_replies enable row level security;
+alter table bookmarks enable row level security;
+
+create policy "replies_read_all" on post_replies for select using (true);
+create policy "replies_insert_auth" on post_replies for insert with check (auth.uid() is not null);
+create policy "replies_delete_own" on post_replies for delete using (auth.uid() = user_id);
+
+create policy "bookmarks_read_own" on bookmarks for select using (auth.uid() = user_id);
+create policy "bookmarks_insert_own" on bookmarks for insert with check (auth.uid() = user_id);
+create policy "bookmarks_delete_own" on bookmarks for delete using (auth.uid() = user_id);

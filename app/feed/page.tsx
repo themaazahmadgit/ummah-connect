@@ -15,6 +15,14 @@ interface PostAuthor {
   orcid_verified: boolean;
 }
 
+interface Reply {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: { name: string; username: string; is_verified: boolean };
+}
+
 interface Post {
   id: string;
   user_id: string;
@@ -26,6 +34,8 @@ interface Post {
   author: PostAuthor;
   likeCount: number;
   liked: boolean;
+  replyCount: number;
+  bookmarked: boolean;
 }
 
 function timeAgo(dateStr: string) {
@@ -37,24 +47,74 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hrs / 24)}d`;
 }
 
-function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }) {
+const TRENDING = [
+  { tag: "#IslamicAI", count: 847 },
+  { tag: "#HalalFinance", count: 623 },
+  { tag: "#MuslimDev", count: 412 },
+  { tag: "#UmmahBuilds", count: 389 },
+  { tag: "#HifzTech", count: 201 },
+];
+
+function PostCard({ post, onLike, onBookmark, currentUserId }: {
+  post: Post;
+  onLike: (id: string) => void;
+  onBookmark: (id: string) => void;
+  currentUserId?: string;
+}) {
   const cat = CATEGORIES.find(c => c.id === post.category);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [repliesLoaded, setRepliesLoaded] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [replyCount, setReplyCount] = useState(post.replyCount);
+
+  const loadReplies = async () => {
+    if (repliesLoaded) { setShowReplies(v => !v); return; }
+    const res = await fetch(`/api/posts/${post.id}/replies`);
+    const data = await res.json();
+    setReplies(data.replies || []);
+    setRepliesLoaded(true);
+    setShowReplies(true);
+  };
+
+  const submitReply = async () => {
+    if (!replyText.trim() || posting) return;
+    setPosting(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/replies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: replyText }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReplies(prev => [...prev, data.reply]);
+        setReplyCount(c => c + 1);
+        setReplyText("");
+      }
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
     <div style={{ padding: "18px 0", borderBottom: "1px solid #f3f4f6" }}>
       {post.pinned && <p style={{ fontSize: 11.5, color: "#9ca3af", marginBottom: 10 }}>Pinned</p>}
       <div style={{ display: "flex", gap: 12 }}>
-        <div className="avatar avatar-emerald" style={{ width: 34, height: 34, flexShrink: 0 }}>
-          {post.author?.name?.[0] || "U"}
-        </div>
+        <a href={`/profile/${post.author?.username}`} style={{ textDecoration: "none", flexShrink: 0 }}>
+          <div className="avatar avatar-emerald" style={{ width: 34, height: 34 }}>
+            {post.author?.name?.[0] || "U"}
+          </div>
+        </a>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: "#111827" }}>{post.author?.name}</span>
+            <a href={`/profile/${post.author?.username}`} style={{ fontSize: 13.5, fontWeight: 600, color: "#111827", textDecoration: "none" }}>{post.author?.name}</a>
             {post.author?.is_verified && <span className="badge badge-emerald">verified</span>}
             {post.author?.github_verified && <span className="badge badge-github">GitHub</span>}
             {post.author?.orcid_verified && <span className="badge badge-orcid">ORCID</span>}
             <span style={{ color: "#e5e7eb" }}>·</span>
-            <span style={{ fontSize: 12.5, color: "#9ca3af" }}>{post.author?.username}</span>
+            <span style={{ fontSize: 12.5, color: "#9ca3af" }}>@{post.author?.username}</span>
             <span style={{ color: "#e5e7eb" }}>·</span>
             <span suppressHydrationWarning style={{ fontSize: 12.5, color: "#9ca3af" }}>{timeAgo(post.created_at)}</span>
             {cat && (
@@ -70,26 +130,58 @@ function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }
               {post.tags.map(t => <span key={t} className="tag">#{t}</span>)}
             </div>
           )}
-          <div style={{ display: "flex", gap: 2 }}>
+          <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             <button onClick={() => onLike(post.id)} className={`feed-action ${post.liked ? "liked" : ""}`}>
-              {post.likeCount.toLocaleString()} {post.liked ? "liked" : "like"}
+              {post.likeCount > 0 ? post.likeCount.toLocaleString() : ""} {post.liked ? "liked" : "like"}
             </button>
-            <button className="feed-action">reply</button>
-            <button className="feed-action">share</button>
+            <button onClick={loadReplies} className="feed-action">
+              {replyCount > 0 ? `${replyCount} ` : ""}reply
+            </button>
+            <button onClick={() => onBookmark(post.id)} className="feed-action" style={{ marginLeft: "auto", color: post.bookmarked ? "#0d7377" : undefined }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill={post.bookmarked ? "#0d7377" : "none"} stroke="currentColor" strokeWidth="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+              {post.bookmarked ? "saved" : "save"}
+            </button>
           </div>
+
+          {showReplies && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f9fafb" }}>
+              {replies.map(r => (
+                <div key={r.id} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                  <div className="avatar avatar-emerald" style={{ width: 26, height: 26, fontSize: 10, flexShrink: 0 }}>
+                    {r.profiles?.name?.[0] || "U"}
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 3 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: "#111827" }}>{r.profiles?.name}</span>
+                      <span suppressHydrationWarning style={{ fontSize: 11.5, color: "#d1d5db" }}>{timeAgo(r.created_at)}</span>
+                    </div>
+                    <p style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.55 }}>{r.content}</p>
+                  </div>
+                </div>
+              ))}
+              {currentUserId && (
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <input
+                    placeholder="Write a reply..."
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitReply(); } }}
+                    style={{ fontSize: 13, padding: "7px 10px" }}
+                  />
+                  <button onClick={submitReply} disabled={posting || !replyText.trim()} className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
+                    {posting ? "..." : "Reply"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
-const TRENDING = [
-  { tag: "#IslamicAI", count: 847 },
-  { tag: "#HalalFinance", count: 623 },
-  { tag: "#MuslimDev", count: 412 },
-  { tag: "#UmmahBuilds", count: 389 },
-  { tag: "#HifzTech", count: 201 },
-];
 
 export default function FeedPage() {
   const { profile } = useAuth();
@@ -119,9 +211,7 @@ export default function FeedPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchPosts(activeCategory);
-  }, [activeCategory, fetchPosts]);
+  useEffect(() => { fetchPosts(activeCategory); }, [activeCategory, fetchPosts]);
 
   const handlePost = async () => {
     if (!postText.trim()) return;
@@ -150,26 +240,22 @@ export default function FeedPage() {
   };
 
   const handleLike = async (postId: string) => {
-    // Optimistically update
-    setPosts(prev =>
-      prev.map(p =>
-        p.id === postId
-          ? { ...p, liked: !p.liked, likeCount: p.liked ? p.likeCount - 1 : p.likeCount + 1 }
-          : p
-      )
-    );
+    setPosts(prev => prev.map(p => p.id === postId
+      ? { ...p, liked: !p.liked, likeCount: p.liked ? p.likeCount - 1 : p.likeCount + 1 }
+      : p
+    ));
+    try { await fetch(`/api/posts/${postId}/like`, { method: "POST" }); } catch { /* silent */ }
+  };
+
+  const handleBookmark = async (postId: string) => {
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, bookmarked: !p.bookmarked } : p));
     try {
-      await fetch(`/api/posts/${postId}/like`, { method: "POST" });
-    } catch {
-      // Revert on error
-      setPosts(prev =>
-        prev.map(p =>
-          p.id === postId
-            ? { ...p, liked: !p.liked, likeCount: p.liked ? p.likeCount - 1 : p.likeCount + 1 }
-            : p
-        )
-      );
-    }
+      await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post_id: postId }),
+      });
+    } catch { /* silent */ }
   };
 
   return (
@@ -190,9 +276,10 @@ export default function FeedPage() {
             ))}
             <div style={{ height: 1, background: "#f3f4f6", margin: "16px 0" }} />
             {[
+              ["People", "/people"],
               ["Ideas", "/ideas"],
               ["Startups", "/startups"],
-              ...(profile ? [["My Profile", `/profile/${profile.username}`]] : []),
+              ...(profile ? [["Bookmarks", "/bookmarks"], ["My Profile", `/profile/${profile.username}`]] : []),
               ...(profile?.is_admin ? [["Admin", "/admin"]] : []),
             ].map(([l, h]) => (
               <a key={h} href={h} className="sidebar-link">{l}</a>
@@ -201,12 +288,13 @@ export default function FeedPage() {
 
           {/* Feed */}
           <main>
-            {/* Compose box */}
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
               {!showCompose ? (
                 <button onClick={() => setShowCompose(true)}
                   style={{ width: "100%", padding: "13px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: "#fff", border: "none", textAlign: "left" }}>
-                  <div className="avatar avatar-emerald" style={{ width: 32, height: 32, flexShrink: 0 }}>U</div>
+                  <div className="avatar avatar-emerald" style={{ width: 32, height: 32, flexShrink: 0 }}>
+                    {profile?.name?.[0] || "U"}
+                  </div>
                   <span style={{ color: "#d1d5db", fontSize: 14 }}>Share something with the Ummah...</span>
                 </button>
               ) : (
@@ -235,7 +323,6 @@ export default function FeedPage() {
               )}
             </div>
 
-            {/* Filter row */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", marginBottom: 4 }}>
               <span style={{ fontSize: 12.5, color: "#9ca3af" }}>
                 {activeCategory === "all" ? "All posts" : CATEGORIES.find(c => c.id === activeCategory)?.label}
@@ -261,7 +348,9 @@ export default function FeedPage() {
                 <button onClick={() => setShowCompose(true)} className="btn btn-secondary btn-sm" style={{ marginTop: 12 }}>Share something</button>
               </div>
             ) : (
-              posts.map(post => <PostCard key={post.id} post={post} onLike={handleLike} />)
+              posts.map(post => (
+                <PostCard key={post.id} post={post} onLike={handleLike} onBookmark={handleBookmark} currentUserId={profile?.id} />
+              ))
             )}
           </main>
 
@@ -269,8 +358,8 @@ export default function FeedPage() {
           <aside style={{ position: "sticky", top: 72 }}>
             <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: "14px", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                <span style={{ width: 5, height: 5, background: "#059669", borderRadius: "50%" }} />
-                <span className="section-label">Admin</span>
+                <span style={{ width: 5, height: 5, background: "#0d7377", borderRadius: "50%" }} />
+                <span className="section-label">Notice</span>
               </div>
               <p style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.55, marginBottom: 10 }}>
                 Global Muslim Tech Summit 2025 — registration open. Dubai, Ramadan.
