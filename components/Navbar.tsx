@@ -15,6 +15,7 @@ export default function Navbar() {
     { href: "/feed", label: "Feed" },
     { href: "/ideas", label: "Ideas" },
     { href: "/startups", label: "Startups" },
+    { href: "/people", label: "People" },
   ];
 
   // Close on outside click
@@ -78,13 +79,19 @@ export default function Navbar() {
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{profile.name}</p>
                     <p style={{ fontSize: 12, color: "#9ca3af" }}>@{profile.username}</p>
                   </div>
-                  <Link href={`/profile/${profile.username}`}
-                    onClick={() => setMenuOpen(false)}
-                    style={{ display: "block", padding: "10px 14px", fontSize: 13, color: "#374151", textDecoration: "none", borderBottom: "1px solid #f9fafb" }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f9fafb"}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "#fff"}>
-                    My profile
-                  </Link>
+                  {[
+                    { href: `/profile/${profile.username}`, label: "My profile" },
+                    { href: "/bookmarks", label: "Bookmarks" },
+                    { href: "/people", label: "People" },
+                  ].map(item => (
+                    <Link key={item.href} href={item.href}
+                      onClick={() => setMenuOpen(false)}
+                      style={{ display: "block", padding: "10px 14px", fontSize: 13, color: "#374151", textDecoration: "none", borderBottom: "1px solid #f9fafb" }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f9fafb"}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "#fff"}>
+                      {item.label}
+                    </Link>
+                  ))}
                   {profile.is_admin && (
                     <Link href="/admin"
                       onClick={() => setMenuOpen(false)}
