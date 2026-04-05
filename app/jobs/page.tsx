@@ -28,6 +28,15 @@ function timeAgo(d: string) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+function expiresIn(d: string) {
+  const msLeft = 86400000 - (Date.now() - new Date(d).getTime());
+  if (msLeft <= 0) return "expired";
+  const h = Math.floor(msLeft / 3600000);
+  const m = Math.floor((msLeft % 3600000) / 60000);
+  if (h === 0) return `${m}m left`;
+  return `${h}h ${m}m left`;
+}
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +140,7 @@ export default function JobsPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                         {job.location && <span style={{ fontSize: 12, color: "#9ca3af" }}>{job.location}</span>}
                         {job.salary && <span style={{ fontSize: 12, color: "#9ca3af" }}>{job.salary}</span>}
-                        <span style={{ fontSize: 12, color: "#d1d5db" }} suppressHydrationWarning>posted {timeAgo(job.created_at)}</span>
+                        <span suppressHydrationWarning style={{ fontSize: 11.5, color: "#dc2626", fontWeight: 500, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 4, padding: "1px 6px" }}>{expiresIn(job.created_at)}</span>
                       </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>

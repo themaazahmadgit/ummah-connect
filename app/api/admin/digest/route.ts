@@ -16,19 +16,21 @@ export async function POST() {
 
   const since = new Date(Date.now() - 604800000).toISOString();
 
-  const [postsRes, ideasRes, papersRes, startupsRes, usersRes] = await Promise.all([
+  const [postsRes, ideasRes, papersRes, startupsRes] = await Promise.all([
     admin.from("posts").select("content, profiles!posts_user_id_fkey(name)").gte("created_at", since).limit(5),
     admin.from("ideas").select("title, description, profiles!ideas_user_id_fkey(name)").gte("created_at", since).limit(3),
     admin.from("research_papers").select("title, journal, year, profiles!research_papers_user_id_fkey(name)").gte("created_at", since).limit(3),
     admin.from("startups").select("name, tagline, raised, goal").gte("created_at", since).limit(3),
-    admin.from("profiles").select("name, username"),
   ]);
 
   const posts = postsRes.data || [];
   const ideas = ideasRes.data || [];
   const papers = papersRes.data || [];
   const startups = startupsRes.data || [];
-  const users = usersRes.data || [];
+
+  // Get real emails from Supabase Auth
+  const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const users = authUsers.filter(u => u.email).map(u => ({ id: u.id, email: u.email!, name: u.user_metadata?.name || u.email!.split("@")[0] }));
 
   const date = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
@@ -106,17 +108,14 @@ export async function POST() {
 </body>
 </html>`;
 
-  // Send to all users in batches
-  const emails = users.map((u: { name: string; username: string }) => u.username).filter(Boolean);
+  // Send to all users in batches of 100
   let sent = 0;
-
-  // Resend supports batch of 100
-  for (let i = 0; i < emails.length; i += 100) {
+  for (let i = 0; i < users.length; i += 100) {
     const batch = users.slice(i, i + 100);
-    await Promise.allSettled(batch.map((u: { name: string; username: string }) =>
+    await Promise.allSettled(batch.map(u =>
       resend.emails.send({
         from: "IMS <digest@ims.app>",
-        to: u.username, // in real app this would be email — using username as placeholder
+        to: u.email,
         subject: `Jumu'ah Digest · ${date}`,
         html,
       })

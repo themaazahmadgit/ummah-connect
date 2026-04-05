@@ -8,11 +8,13 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type");
   const location_type = searchParams.get("location_type");
 
+  const since24h = new Date(Date.now() - 86400000).toISOString();
   const admin = createAdminClient();
   let query = admin
     .from("jobs")
     .select("*, poster:profiles!jobs_user_id_fkey(name, username, is_verified)")
     .eq("active", true)
+    .gte("created_at", since24h)
     .order("created_at", { ascending: false })
     .limit(40);
 
