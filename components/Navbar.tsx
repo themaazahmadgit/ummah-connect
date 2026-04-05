@@ -21,6 +21,7 @@ export default function Navbar() {
     { href: "/ideas", label: "Ideas" },
     { href: "/startups", label: "Startups" },
     { href: "/people", label: "People" },
+    { href: "/papers", label: "Research" },
   ];
 
   useEffect(() => {

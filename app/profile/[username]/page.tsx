@@ -61,6 +61,7 @@ export default function ProfilePage() {
 
   const [tab, setTab] = useState("posts");
   const [followed, setFollowed] = useState(false);
+  const [papers, setPapers] = useState<{ id: string; doi: string; title: string; authors: string[]; journal: string | null; year: number | null; url: string; category: string; relevance_note: string | null; upvoteCount: number }[]>([]);
   const [adminMessages, setAdminMessages] = useState<{ id: string; subject: string; body: string; visibility: string; created_at: string; admin: { name: string; username: string } }[]>([]);
   const [githubModal, setGithubModal] = useState(false);
   const [orcidModal, setOrcidModal] = useState(false);
@@ -92,6 +93,11 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(data => setAdminMessages(data.messages || []))
       .catch(() => {});
+
+    fetch(`/api/papers?username=${username}`)
+      .then(r => r.json())
+      .then(data => setPapers(data.papers || []))
+      .catch(() => {});
   }, [username]);
 
   const handleFollow = async () => {
@@ -110,6 +116,7 @@ export default function ProfilePage() {
   const TABS = [
     { id: "posts", label: "Posts", count: stats.posts },
     { id: "ideas", label: "Ideas", count: stats.ideas },
+    { id: "papers", label: "Papers", count: papers.length || undefined },
     { id: "backed", label: "Backed" },
     { id: "about", label: "About" },
     ...(adminMessages.length > 0 ? [{ id: "messages", label: "Messages", count: adminMessages.length }] : []),
@@ -255,6 +262,35 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
+            )}
+
+            {tab === "papers" && (
+              papers.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 0" }}>
+                  <p style={{ fontSize: 13.5, color: "#9ca3af" }}>No papers submitted yet.</p>
+                  <a href="/papers" className="btn btn-secondary btn-sm" style={{ marginTop: 12, display: "inline-flex" }}>Browse all papers</a>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {papers.map(p => (
+                    <div key={p.id} style={{ border: "1px solid #f0f0f0", borderRadius: 10, padding: "14px 16px" }}>
+                      <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", lineHeight: 1.4, marginBottom: 5 }}>{p.title}</p>
+                      </a>
+                      <p style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 5 }}>{p.authors.slice(0, 3).join(", ")}{p.authors.length > 3 ? " et al." : ""}</p>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        {p.journal && <span style={{ fontSize: 12, color: "#9ca3af", fontStyle: "italic" }}>{p.journal}</span>}
+                        {p.year && <span style={{ fontSize: 12, color: "#9ca3af" }}>{p.year}</span>}
+                        <a href={`https://doi.org/${p.doi}`} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 11.5, color: "#0d7377", fontFamily: "monospace", textDecoration: "none" }}>DOI:{p.doi}</a>
+                      </div>
+                      {p.relevance_note && (
+                        <p style={{ fontSize: 12.5, color: "#4b5563", marginTop: 8, padding: "8px 10px", background: "#f5fbfb", borderRadius: 6, lineHeight: 1.55 }}>{p.relevance_note}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
             )}
 
             {(tab === "ideas" || tab === "backed") && (

@@ -261,3 +261,38 @@ create policy "admin_msgs_read" on admin_messages for select using (
 create policy "admin_msgs_insert" on admin_messages for insert with check (
   exists (select 1 from profiles where id = auth.uid() and is_admin = true)
 );
+
+-- research_papers
+create table if not exists research_papers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  doi text unique not null,
+  title text not null,
+  authors text[] not null default '{}',
+  journal text,
+  year integer,
+  abstract text,
+  url text,
+  category text not null default 'science',
+  relevance_note text,
+  upvote_count integer default 0,
+  created_at timestamptz default now()
+);
+
+create table if not exists paper_upvotes (
+  id uuid primary key default gen_random_uuid(),
+  paper_id uuid references research_papers(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  unique(paper_id, user_id)
+);
+
+alter table research_papers enable row level security;
+alter table paper_upvotes enable row level security;
+
+create policy "papers_read_all" on research_papers for select using (true);
+create policy "papers_insert_auth" on research_papers for insert with check (auth.uid() is not null);
+create policy "papers_delete_own" on research_papers for delete using (auth.uid() = user_id);
+
+create policy "paper_upvotes_read_all" on paper_upvotes for select using (true);
+create policy "paper_upvotes_insert_own" on paper_upvotes for insert with check (auth.uid() = user_id);
+create policy "paper_upvotes_delete_own" on paper_upvotes for delete using (auth.uid() = user_id);
