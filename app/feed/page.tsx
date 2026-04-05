@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import { CATEGORIES } from "@/lib/data";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 interface PostAuthor {
   id: string;
@@ -55,7 +56,7 @@ function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }
             <span style={{ color: "#e5e7eb" }}>·</span>
             <span style={{ fontSize: 12.5, color: "#9ca3af" }}>{post.author?.username}</span>
             <span style={{ color: "#e5e7eb" }}>·</span>
-            <span style={{ fontSize: 12.5, color: "#9ca3af" }}>{timeAgo(post.created_at)}</span>
+            <span suppressHydrationWarning style={{ fontSize: 12.5, color: "#9ca3af" }}>{timeAgo(post.created_at)}</span>
             {cat && (
               <>
                 <span style={{ color: "#e5e7eb" }}>·</span>
@@ -82,7 +83,16 @@ function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }
   );
 }
 
+const TRENDING = [
+  { tag: "#IslamicAI", count: 847 },
+  { tag: "#HalalFinance", count: 623 },
+  { tag: "#MuslimDev", count: 412 },
+  { tag: "#UmmahBuilds", count: 389 },
+  { tag: "#HifzTech", count: 201 },
+];
+
 export default function FeedPage() {
+  const { profile } = useAuth();
   const [activeCategory, setActiveCategory] = useState("all");
   const [showCompose, setShowCompose] = useState(false);
   const [postText, setPostText] = useState("");
@@ -179,7 +189,12 @@ export default function FeedPage() {
               </button>
             ))}
             <div style={{ height: 1, background: "#f3f4f6", margin: "16px 0" }} />
-            {[["Ideas", "/ideas"], ["Startups", "/startups"], ["My Profile", "/profile/demo"], ["Admin", "/admin"]].map(([l, h]) => (
+            {[
+              ["Ideas", "/ideas"],
+              ["Startups", "/startups"],
+              ...(profile ? [["My Profile", `/profile/${profile.username}`]] : []),
+              ...(profile?.is_admin ? [["Admin", "/admin"]] : []),
+            ].map(([l, h]) => (
               <a key={h} href={h} className="sidebar-link">{l}</a>
             ))}
           </aside>
@@ -264,10 +279,10 @@ export default function FeedPage() {
             </div>
 
             <p className="section-label" style={{ marginBottom: 10 }}>Trending</p>
-            {["#IslamicAI", "#HalalFinance", "#MuslimDev", "#UmmahBuilds", "#HifzTech"].map((tag, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: i < 4 ? "1px solid #f9fafb" : "none" }}>
+            {TRENDING.map(({ tag, count }, i) => (
+              <div key={tag} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: i < 4 ? "1px solid #f9fafb" : "none" }}>
                 <span className="tag" style={{ fontSize: 13 }}>{tag}</span>
-                <span style={{ fontSize: 11.5, color: "#d1d5db" }}>{Math.floor(Math.random() * 900 + 100)}</span>
+                <span style={{ fontSize: 11.5, color: "#d1d5db" }}>{count}</span>
               </div>
             ))}
           </aside>

@@ -221,7 +221,7 @@ export default function ProfilePage() {
                   <div key={post.id} style={{ paddingBottom: "18px", marginBottom: "18px", borderBottom: i < posts.length - 1 ? "1px solid #f3f4f6" : "none" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
                       {cat && <span style={{ fontSize: 12, color: "#9ca3af" }}>{cat.label}</span>}
-                      <span style={{ fontSize: 12, color: "#d1d5db" }}>· {timeAgo(post.created_at)}</span>
+                      <span suppressHydrationWarning style={{ fontSize: 12, color: "#d1d5db" }}>· {timeAgo(post.created_at)}</span>
                     </div>
                     <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.65, marginBottom: 10 }}>{post.content}</p>
                     <div style={{ display: "flex", gap: 12 }}>

@@ -64,7 +64,7 @@ function IdeaCard({ idea, onUpvote, onJoin }: { idea: Idea; onUpvote: (id: strin
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div className="avatar avatar-emerald" style={{ width: 22, height: 22, fontSize: 10 }}>{idea.author?.name?.[0] || "U"}</div>
           <span style={{ fontSize: 12.5, color: "#6b7280" }}>{idea.author?.name}</span>
-          <span style={{ fontSize: 12, color: "#d1d5db" }}>{timeAgo(idea.created_at)}</span>
+          <span suppressHydrationWarning style={{ fontSize: 12, color: "#d1d5db" }}>{timeAgo(idea.created_at)}</span>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={() => onUpvote(idea.id)}
