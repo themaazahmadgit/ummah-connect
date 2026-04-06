@@ -19,8 +19,6 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "You're the only admin. Transfer admin first." }, { status: 400 });
     }
     await admin.from("group_members").delete().eq("id", existing.id);
-    await admin.from("groups").update({ member_count: admin.from("groups").select("member_count") }).eq("id", id);
-    // Decrement member_count
     const { data: g } = await admin.from("groups").select("member_count").eq("id", id).single();
     await admin.from("groups").update({ member_count: Math.max(0, (g?.member_count || 1) - 1) }).eq("id", id);
     return NextResponse.json({ joined: false });
