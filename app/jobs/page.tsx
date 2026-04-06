@@ -173,12 +173,12 @@ export default function JobsPage() {
               </button>
             </div>
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, maxHeight: "70vh", overflowY: "auto" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="two-col">
                 <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Job title</label><input placeholder="e.g. Backend Engineer" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
                 <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Company</label><input placeholder="Company name" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} /></div>
               </div>
               <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Description</label><textarea placeholder="Role, responsibilities, requirements..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ resize: "none", minHeight: 90 }} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div className="three-col">
                 <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Type</label>
                   <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                     {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -195,7 +195,7 @@ export default function JobsPage() {
                   </select>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="two-col">
                 <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>City / location (optional)</label><input placeholder="e.g. London, UK" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
                 <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Salary range (optional)</label><input placeholder="e.g. £60k–£80k" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} /></div>
               </div>

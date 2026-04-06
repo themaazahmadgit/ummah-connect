@@ -109,7 +109,7 @@ export default function StartupDetailPage() {
     <div style={{ minHeight: "100vh", background: "#ffffff" }}>
       <Navbar />
       <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 40, alignItems: "start" }}>
+        <div className="grid-2col" style={{ gap: 40 }}>
           <div>
             {/* Header */}
             <div style={{ marginBottom: 28 }}>

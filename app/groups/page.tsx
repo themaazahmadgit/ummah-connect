@@ -21,6 +21,7 @@ export default function GroupsPage() {
   const [formError, setFormError] = useState("");
   const [toast, setToast] = useState("");
   const [joining, setJoining] = useState<string | null>(null);
+  const [canCreate, setCanCreate] = useState(false);
 
   const fire = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
@@ -32,6 +33,7 @@ export default function GroupsPage() {
       const res = await fetch(`/api/groups?${params}`);
       const data = await res.json();
       setGroups(data.groups || []);
+      setCanCreate(!!data.canCreate);
     } finally { setLoading(false); }
   }, [activeCategory]);
 
@@ -74,23 +76,42 @@ export default function GroupsPage() {
             <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Groups</h1>
             <p style={{ fontSize: 13.5, color: "#6b7280" }}>Join topic-focused public or private communities.</p>
           </div>
-          <button onClick={() => setShowModal(true)} className="btn btn-primary">Create group</button>
+          {canCreate && <button onClick={() => setShowModal(true)} className="btn btn-primary">Create group</button>}
         </div>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 28 }}>
+        <div className="scroll-row" style={{ marginBottom: 28 }}>
           {CATEGORIES.map(cat => (
             <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`pill ${activeCategory === cat.id ? "pill-active" : ""}`}>{cat.label}</button>
           ))}
         </div>
 
-        {loading ? <p style={{ color: "#9ca3af", textAlign: "center", padding: "60px 0" }}>Loading...</p>
-          : groups.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 0" }}>
-              <p style={{ color: "#9ca3af", fontSize: 13.5, marginBottom: 12 }}>No groups yet. Start the first one.</p>
-              <button onClick={() => setShowModal(true)} className="btn btn-secondary">Create group</button>
+        {loading ? (
+          <div className="card-grid" style={{ gap: 12 }}>
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} style={{ border: "1px solid #f3f4f6", borderRadius: 16, padding: "18px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span className="skeleton" style={{ width: "50%", height: 15 }} />
+                  <span className="skeleton" style={{ width: 48, height: 18, borderRadius: 6 }} />
+                </div>
+                <span className="skeleton" style={{ display: "block", width: "100%", height: 13, marginBottom: 5 }} />
+                <span className="skeleton" style={{ display: "block", width: "70%", height: 13, marginBottom: 14 }} />
+                <span className="skeleton" style={{ display: "block", width: "40%", height: 12 }} />
+              </div>
+            ))}
+          </div>
+        ) : groups.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "56px 24px", border: "1px solid #f3f4f6", borderRadius: 16 }}>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8"><path d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
             </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 8 }}>No groups yet</p>
+            <p style={{ fontSize: 13.5, color: "#9ca3af", marginBottom: 20 }}>
+              {activeCategory === "all" ? "Start the first community for the ummah." : `No groups in ${activeCategory} yet. Be the first.`}
+            </p>
+            {canCreate && <button onClick={() => setShowModal(true)} className="btn btn-primary btn-sm">Create group</button>}
+          </div>
+        ) : (
+            <div className="card-grid" style={{ gap: 12 }}>
               {groups.map(g => (
                 <Link key={g.id} href={`/groups/${g.id}`} style={{ textDecoration: "none" }}>
                   <div className="card" style={{ padding: "18px 20px", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -128,7 +149,7 @@ export default function GroupsPage() {
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
               <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Name</label><input placeholder="Group name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
               <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Description</label><textarea placeholder="What's this group about?" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ resize: "none", minHeight: 80 }} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="two-col">
                 <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Category</label>
                   <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                     {CATEGORIES.filter(c => c.id !== "all").map(c => <option key={c.id} value={c.id}>{c.label}</option>)}

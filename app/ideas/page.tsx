@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
+import EmptyState from "@/components/EmptyState";
 import { CATEGORIES } from "@/lib/data";
 
 interface IdeaAuthor {
@@ -86,13 +87,13 @@ function IdeaCard({ idea, onUpvote, onJoin }: { idea: Idea; onUpvote: (id: strin
           {idea.tags.map(t => <span key={t} className="tag">#{t}</span>)}
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid #f9fafb" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div className="avatar avatar-emerald" style={{ width: 22, height: 22, fontSize: 10 }}>{idea.author?.name?.[0] || "U"}</div>
-          <span style={{ fontSize: 12.5, color: "#6b7280" }}>{idea.author?.name}</span>
-          <span suppressHydrationWarning style={{ fontSize: 12, color: "#d1d5db" }}>{timeAgo(idea.created_at)}</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid #f9fafb", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <div className="avatar avatar-emerald" style={{ width: 22, height: 22, fontSize: 10, flexShrink: 0 }}>{idea.author?.name?.[0] || "U"}</div>
+          <span style={{ fontSize: 12.5, color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{idea.author?.name}</span>
+          <span suppressHydrationWarning style={{ fontSize: 12, color: "#d1d5db", flexShrink: 0 }}>{timeAgo(idea.created_at)}</span>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
           <button onClick={loadComments} className="btn btn-secondary btn-sm" style={{ fontSize: 11.5 }}>
             {showComments ? "Hide" : "Comments"} {commentsLoaded ? `(${comments.length})` : ""}
           </button>
@@ -240,7 +241,7 @@ export default function IdeasPage() {
       <Navbar />
 
       <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32, gap: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, gap: 16, flexWrap: "wrap" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111827", marginBottom: 4 }}>Ideas</h1>
             <p style={{ fontSize: 13.5, color: "#6b7280" }}>Post an idea publicly. Find contributors. Make it real.</p>
@@ -248,7 +249,7 @@ export default function IdeasPage() {
           <button onClick={() => setShowModal(true)} className="btn btn-primary">New idea</button>
         </div>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 28 }}>
+        <div className="scroll-row" style={{ marginBottom: 28 }}>
           {CATEGORIES.map(cat => (
             <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
               className={`pill ${activeCategory === cat.id ? "pill-active" : ""}`}>
@@ -258,20 +259,35 @@ export default function IdeasPage() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <p style={{ color: "#9ca3af", fontSize: 13.5 }}>Loading...</p>
+          <div className="card-grid">
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{ border: "1px solid #f3f4f6", borderRadius: 16, padding: "18px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                  <span className="skeleton" style={{ width: "55%", height: 16 }} />
+                  <span className="skeleton" style={{ width: 56, height: 20, borderRadius: 6 }} />
+                </div>
+                <span className="skeleton" style={{ display: "block", width: "100%", height: 13, marginBottom: 6 }} />
+                <span className="skeleton" style={{ display: "block", width: "80%", height: 13, marginBottom: 16 }} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span className="skeleton" style={{ width: 28, height: 28, borderRadius: "50%" }} />
+                  <span className="skeleton" style={{ width: 80, height: 14, marginTop: 7 }} />
+                </div>
+              </div>
+            ))}
           </div>
         ) : fetchError ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <p style={{ color: "#dc2626", fontSize: 13.5 }}>{fetchError}</p>
           </div>
         ) : ideas.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <p style={{ color: "#9ca3af", fontSize: 13.5, marginBottom: 12 }}>Nothing yet. Be the first.</p>
-            <button onClick={() => setShowModal(true)} className="btn btn-secondary">Post the first idea</button>
-          </div>
+          <EmptyState
+            icon="idea"
+            title={activeCategory === "all" ? "No ideas yet" : `No ideas in ${CATEGORIES.find(c => c.id === activeCategory)?.label}`}
+            body="Be the first to share an idea with the ummah. Find contributors and make it real."
+            action={<button onClick={() => setShowModal(true)} className="btn btn-primary btn-sm">Post the first idea</button>}
+          />
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))", gap: 12 }}>
+          <div className="card-grid">
             {ideas.map(idea => <IdeaCard key={idea.id} idea={idea} onUpvote={handleUpvote} onJoin={handleJoin} />)}
           </div>
         )}
@@ -295,7 +311,7 @@ export default function IdeasPage() {
                 <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Description</label>
                 <textarea placeholder="Describe the problem, solution, and how people can contribute..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ resize: "none", minHeight: 100 }} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="two-col" style={{ gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Category</label>
                   <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>

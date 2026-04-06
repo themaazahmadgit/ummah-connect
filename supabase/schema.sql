@@ -14,6 +14,8 @@ create table if not exists profiles (
   skills text[] default '{}',
   is_admin boolean default false,
   is_verified boolean default false,
+  admin_verified boolean default false,
+  can_create_groups boolean default false,
   github_verified boolean default false,
   orcid_verified boolean default false,
   created_at timestamptz default now()
@@ -453,3 +455,67 @@ alter table profiles add column if not exists avatar_url text;
 -- create policy "avatars_public_read" on storage.objects for select using (bucket_id = 'avatars');
 -- create policy "avatars_upload_own" on storage.objects for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
 -- create policy "avatars_update_own" on storage.objects for update using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- post_polls
+create table if not exists post_polls (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid references posts(id) on delete cascade not null unique,
+  options text[] not null,
+  created_at timestamptz default now()
+);
+
+create table if not exists poll_votes (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid references post_polls(id) on delete cascade not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  option_index integer not null,
+  created_at timestamptz default now(),
+  unique(poll_id, user_id)
+);
+
+-- mentorship
+create table if not exists mentorship (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null unique,
+  type text not null check (type in ('mentor', 'mentee', 'both')),
+  skills text[] not null default '{}',
+  bio text,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+-- reports
+create table if not exists reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid references profiles(id) on delete cascade not null,
+  post_id uuid references posts(id) on delete cascade,
+  idea_id uuid references ideas(id) on delete cascade,
+  reason text not null,
+  status text default 'pending' check (status in ('pending', 'reviewed', 'dismissed')),
+  created_at timestamptz default now()
+);
+
+-- scheduled posts
+alter table posts add column if not exists scheduled_at timestamptz;
+
+alter table post_polls enable row level security;
+alter table poll_votes enable row level security;
+alter table mentorship enable row level security;
+alter table reports enable row level security;
+
+create policy "polls_read_all" on post_polls for select using (true);
+create policy "polls_insert_auth" on post_polls for insert with check (auth.uid() is not null);
+
+create policy "poll_votes_read_all" on poll_votes for select using (true);
+create policy "poll_votes_insert_own" on poll_votes for insert with check (auth.uid() = user_id);
+create policy "poll_votes_delete_own" on poll_votes for delete using (auth.uid() = user_id);
+
+create policy "mentorship_read_all" on mentorship for select using (true);
+create policy "mentorship_insert_own" on mentorship for insert with check (auth.uid() = user_id);
+create policy "mentorship_update_own" on mentorship for update using (auth.uid() = user_id);
+create policy "mentorship_delete_own" on mentorship for delete using (auth.uid() = user_id);
+
+create policy "reports_insert_own" on reports for insert with check (auth.uid() = reporter_id);
+create policy "reports_read_admin" on reports for select using (
+  exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+);

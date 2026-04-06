@@ -78,14 +78,31 @@ export default function EventsPage() {
           ))}
         </div>
 
-        {loading ? <p style={{ color: "#9ca3af", textAlign: "center", padding: "60px 0" }}>Loading...</p>
-          : events.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 0" }}>
-              <p style={{ color: "#9ca3af", fontSize: 13.5, marginBottom: 12 }}>No upcoming events. Post the first one.</p>
-              <button onClick={() => setShowModal(true)} className="btn btn-secondary">Post event</button>
+        {loading ? (
+          <div className="card-grid" style={{ gap: 12 }}>
+            {[1,2,3].map(i => (
+              <div key={i} style={{ border: "1px solid #f3f4f6", borderRadius: 16, padding: "18px 20px" }}>
+                <span className="skeleton" style={{ display: "block", width: "65%", height: 16, marginBottom: 10 }} />
+                <span className="skeleton" style={{ display: "block", width: "100%", height: 13, marginBottom: 6 }} />
+                <span className="skeleton" style={{ display: "block", width: "50%", height: 13, marginBottom: 16 }} />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <span className="skeleton" style={{ width: 60, height: 24, borderRadius: 8 }} />
+                  <span className="skeleton" style={{ width: 80, height: 24, borderRadius: 8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : events.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "56px 24px", border: "1px solid #f3f4f6", borderRadius: 16 }}>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#fdf2f8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#db2777" strokeWidth="1.8"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
             </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "#111827", marginBottom: 8 }}>No events yet</p>
+            <p style={{ fontSize: 13.5, color: "#9ca3af", marginBottom: 20 }}>Post a Muslim conference, hackathon, or meetup.</p>
+            <button onClick={() => setShowModal(true)} className="btn btn-primary btn-sm">Post first event</button>
+          </div>
+        ) : (
+          <div className="card-grid" style={{ gap: 12 }}>
               {events.map(e => (
                 <div key={e.id} className="card" style={{ padding: "18px 20px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 10 }}>
@@ -136,7 +153,7 @@ export default function EventsPage() {
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, maxHeight: "65vh", overflowY: "auto" }}>
               <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Title</label><input placeholder="Event name" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
               <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Description</label><textarea placeholder="What, why, who should attend..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ resize: "none", minHeight: 80 }} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="two-col">
                 <div><label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Type</label>
                   <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                     {["online", "in-person", "hybrid"].map(t => <option key={t} value={t}>{t}</option>)}

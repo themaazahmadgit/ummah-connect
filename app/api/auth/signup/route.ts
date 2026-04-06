@@ -1,34 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { name, username, email, password, phone, location, bio, expertise, github, orcid } = body;
 
-    if (!name || !username || !email || !password) {
-      return NextResponse.json({ error: "Name, username, email and password are required." }, { status: 400 });
+    if (!name || !username || !email || !password || !phone) {
+      return NextResponse.json({ error: "Name, username, email, phone and password are required." }, { status: 400 });
+    }
+    if (password.length < 8) {
+      return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
     }
 
     const admin = createAdminClient();
 
-    // Create auth user
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+    // Check username not taken
+    const { data: existing } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("username", username.toLowerCase().replace(/\s+/g, "_"))
+      .single();
+    if (existing) {
+      return NextResponse.json({ error: "Username already taken." }, { status: 400 });
+    }
+
+    // Use anon client signUp so Supabase sends its own confirmation email automatically
+    const anonClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    const { data: authData, error: authError } = await anonClient.auth.signUp({
       email,
       password,
-      email_confirm: true,
+      options: {
+        emailRedirectTo: `${appUrl}/auth/callback`,
+      },
     });
 
-    if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 400 });
+    if (authError || !authData.user) {
+      return NextResponse.json({ error: authError?.message || "Signup failed." }, { status: 400 });
     }
 
     const userId = authData.user.id;
 
-    // Create profile
+    // Create profile immediately (user exists, email confirmation pending)
     const { error: profileError } = await admin.from("profiles").insert({
       id: userId,
       name,
@@ -45,36 +64,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (profileError) {
-      // Rollback: delete the auth user
       await admin.auth.admin.deleteUser(userId);
       return NextResponse.json({ error: profileError.message }, { status: 400 });
     }
 
-    // Send welcome email
-    try {
-      await resend.emails.send({
-        from: "IMS <onboarding@resend.dev>",
-        to: email,
-        subject: "Welcome to IMS",
-        html: `
-          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-            <h1 style="font-size: 22px; color: #111827; margin-bottom: 8px;">Welcome to IMS, ${name}!</h1>
-            <p style="color: #6b7280; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
-              Your account has been created. Join the global Muslim community — share ideas, support startups, and build together.
-            </p>
-            <a href="https://ummah-connect.vercel.app/feed" style="display: inline-block; background: #059669; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-              Go to your feed
-            </a>
-            <p style="color: #d1d5db; font-size: 12px; margin-top: 32px;">IMS · Connecting the Muslim world</p>
-          </div>
-        `,
-      });
-    } catch {
-      // Don't fail signup if email fails
-    }
-
-    return NextResponse.json({ success: true, userId });
+    return NextResponse.json({ success: true, requiresEmailVerification: true });
   } catch (err) {
+    console.error("Signup error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

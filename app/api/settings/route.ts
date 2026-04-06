@@ -18,7 +18,7 @@ export async function PUT(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const body = await req.json();
-  const allowed = ["name", "bio", "role", "location", "phone", "website", "github_username", "orcid_id", "expertise", "skills"];
+  const allowed = ["name", "bio", "role", "location", "phone", "phone_public", "website", "github_username", "orcid_id", "scholar_url", "researchgate_url", "expertise", "skills", "sex", "religion"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key];

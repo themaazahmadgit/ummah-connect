@@ -211,7 +211,7 @@ export default function StartupsPage() {
             <button onClick={() => setShowModal(true)} className="btn btn-secondary">List yours</button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))", gap: 14 }}>
+          <div className="card-grid" style={{ gap: 14 }}>
             {startups.map(s => <StartupCard key={s.id} startup={s} onBack={handleBack} />)}
           </div>
         )}
@@ -240,7 +240,7 @@ export default function StartupsPage() {
                 <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Description</label>
                 <textarea placeholder="What are you building, why it matters, how funds will be used..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ resize: "none", minHeight: 90 }} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="two-col">
                 <div>
                   <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 6 }}>Category</label>
                   <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>

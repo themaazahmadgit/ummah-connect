@@ -3,13 +3,28 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/data";
+import { imsToast } from "@/lib/toast";
 
-const STEPS = ["Welcome", "Your profile", "Interests", "Skills"];
+const STEPS = ["Welcome", "Biological sex", "Religion", "Your profile", "Interests", "Skills"];
+
+const RELIGION_OPTIONS = [
+  { value: "muslim_sunni",  label: "Muslim — Sunni" },
+  { value: "muslim_shia",   label: "Muslim — Shia" },
+  { value: "muslim_other",  label: "Muslim — Other" },
+  { value: "non_muslim",    label: "Non-Muslim" },
+  { value: "prefer_not",    label: "Prefer not to say" },
+];
+
+const SEX_OPTIONS = [
+  { value: "male", label: "Male", desc: "Biologically male" },
+  { value: "female", label: "Female", desc: "Biologically female" },
+  { value: "intersex", label: "Intersex", desc: "Born with variations in sex characteristics" },
+];
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({ name: "", bio: "", role: "", location: "", expertise: [] as string[], skills: "" });
+  const [form, setForm] = useState({ sex: "", religion: "", name: "", bio: "", role: "", location: "", expertise: [] as string[], skills: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,7 +40,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, bio: form.bio, role: form.role, location: form.location, expertise: form.expertise, skills }),
+        body: JSON.stringify({ name: form.name, bio: form.bio, role: form.role, location: form.location, expertise: form.expertise, skills, sex: form.sex || null, religion: form.religion || null }),
       });
       if (!res.ok) { const d = await res.json(); setError(d.error || "Failed."); return; }
       router.push("/feed");
@@ -84,6 +99,47 @@ export default function OnboardingPage() {
             )}
 
             {step === 1 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6 }}>This helps us personalise your experience. Select your biological sex.</p>
+                {SEX_OPTIONS.map(opt => (
+                  <button key={opt.value} onClick={() => setForm(f => ({ ...f, sex: opt.value }))}
+                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", border: `1.5px solid ${form.sex === opt.value ? "#0d7377" : "#e5e7eb"}`, borderRadius: 10, background: form.sex === opt.value ? "#f0fafa" : "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "border 0.15s, background 0.15s" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${form.sex === opt.value ? "#0d7377" : "#d1d5db"}`, background: form.sex === opt.value ? "#0d7377" : "#fff", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {form.sex === opt.value && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 2 }}>{opt.label}</p>
+                      <p style={{ fontSize: 12.5, color: "#6b7280" }}>{opt.desc}</p>
+                    </div>
+                  </button>
+                ))}
+                <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>You can skip this — it won't affect your access.</p>
+                {error && <p style={{ fontSize: 13, color: "#dc2626" }}>{error}</p>}
+              </div>
+            )}
+
+            {step === 2 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6 }}>This is for data and community understanding. All answers are kept private.</p>
+                {RELIGION_OPTIONS.map(opt => (
+                  <button key={opt.value} onClick={() => {
+                    setForm(f => ({ ...f, religion: opt.value }));
+                    if (opt.value === "non_muslim") imsToast.nonMuslimSelected();
+                    else if (opt.value === "prefer_not") imsToast.preferNotSelected();
+                    else imsToast.muslimSelected();
+                  }}
+                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", border: `1.5px solid ${form.religion === opt.value ? "#0d7377" : "#e5e7eb"}`, borderRadius: 10, background: form.religion === opt.value ? "#f0fafa" : "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "border 0.15s, background 0.15s" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${form.religion === opt.value ? "#0d7377" : "#d1d5db"}`, background: form.religion === opt.value ? "#0d7377" : "#fff", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {form.religion === opt.value && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />}
+                    </div>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{opt.label}</p>
+                  </button>
+                ))}
+                <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>You can skip this — it won't affect your access.</p>
+              </div>
+            )}
+
+            {step === 3 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
                   <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Full name <span style={{ color: "#dc2626" }}>*</span></label>
@@ -93,7 +149,7 @@ export default function OnboardingPage() {
                   <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Bio (optional)</label>
                   <textarea placeholder="A few words about yourself..." value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} style={{ resize: "none", minHeight: 70 }} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="two-col" style={{ gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Role (optional)</label>
                     <input placeholder="e.g. Engineer, Student" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} />
@@ -106,7 +162,7 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {step === 2 && (
+            {step === 4 && (
               <div>
                 <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 14 }}>Pick areas you're interested in. This helps surface relevant content for you.</p>
                 <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
@@ -120,7 +176,7 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {step === 3 && (
+            {step === 5 && (
               <div>
                 <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>What skills do you have? Others can endorse these.</p>
                 <div>
@@ -139,7 +195,7 @@ export default function OnboardingPage() {
             )}
             {step < STEPS.length - 1 ? (
               <button
-                onClick={() => { if (step === 1 && !form.name.trim()) { setError("Name is required."); return; } setError(""); setStep(s => s + 1); }}
+                onClick={() => { if (step === 3 && !form.name.trim()) { setError("Name is required."); return; } setError(""); setStep(s => s + 1); }}
                 className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>
                 Continue
               </button>

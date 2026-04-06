@@ -13,14 +13,17 @@ interface Profile {
   bio: string | null;
   role: string | null;
   location: string | null;
-  phone: string | null;
+  phone: string | null; phone_public: boolean;
   website: string | null;
   github_username: string | null;
   orcid_id: string | null;
+  scholar_url: string | null;
+  researchgate_url: string | null;
   expertise: string[];
   skills: string[];
   is_admin: boolean;
   is_verified: boolean;
+  admin_verified: boolean;
   github_verified: boolean;
   orcid_verified: boolean;
   avatar_url: string | null;
@@ -67,8 +70,7 @@ export default function ProfilePage() {
   const [adminMessages, setAdminMessages] = useState<{ id: string; subject: string; body: string; visibility: string; created_at: string; admin: { name: string; username: string } }[]>([]);
   const [endorsements, setEndorsements] = useState<{ skill: string; count: number; endorsers: { name: string; username: string }[] }[]>([]);
   const [endorsingSkill, setEndorsingSkill] = useState("");
-  const [githubModal, setGithubModal] = useState(false);
-  const [orcidModal, setOrcidModal] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [toast, setToast] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<Stats>({ posts: 0, followers: 0, following: 0, ideas: 0 });
@@ -89,6 +91,7 @@ export default function ProfilePage() {
         setStats(data.stats);
         setPosts(data.posts);
         setFollowed(data.isFollowing);
+        setIsOwnProfile(!!data.isOwnProfile);
       })
       .catch(() => setError("Failed to load profile."))
       .finally(() => setLoading(false));
@@ -179,7 +182,7 @@ export default function ProfilePage() {
       <Navbar />
 
       <div className="container" style={{ paddingTop: 36, paddingBottom: 60 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: 40, alignItems: "start" }}>
+        <div className="grid-2col" style={{ gap: 40 }}>
 
           <div>
             {/* Profile header */}
@@ -187,11 +190,15 @@ export default function ProfilePage() {
               <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
                 <Avatar name={profile.name} url={profile.avatar_url} size={56} radius={12} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
                     <h1 style={{ fontSize: 18, fontWeight: 700 }}>{profile.name}</h1>
-                    {profile.is_verified && <span className="badge badge-emerald">verified</span>}
-                    {profile.github_verified && <span className="badge badge-github">GitHub</span>}
-                    {profile.orcid_verified && <span className="badge badge-orcid">ORCID</span>}
+                    {/* Blue verified badge — Twitter/X style */}
+                    {profile.admin_verified && (
+                      <span title="Verified by IMS" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "#1d4ed8", flexShrink: 0 }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </span>
+                    )}
+                    {profile.is_verified && <span className="badge badge-emerald" style={{ fontSize: 11 }}>verified</span>}
                   </div>
                   <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 2 }}>@{profile.username}{profile.role ? ` · ${profile.role}` : ""}</p>
                   <p style={{ fontSize: 12.5, color: "#9ca3af" }}>{profile.location ? `${profile.location} · ` : ""}Joined {formatDate(profile.created_at)}</p>
@@ -206,7 +213,7 @@ export default function ProfilePage() {
 
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 12 }}>
                 {profile.website && <a href={`https://${profile.website}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#059669", textDecoration: "none" }}>{profile.website}</a>}
-                {profile.phone && <a href={`tel:${profile.phone}`} style={{ fontSize: 13, color: "#059669", textDecoration: "none" }}>{profile.phone}</a>}
+                {profile.phone && profile.phone_public && <a href={`tel:${profile.phone}`} style={{ fontSize: 13, color: "#059669", textDecoration: "none" }}>{profile.phone}</a>}
               </div>
 
               {(profile.expertise.length > 0 || profile.skills.length > 0) && (
@@ -221,20 +228,58 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {(profile.github_username || profile.orcid_id) && (
-                <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: "1px solid #f3f4f6", flexWrap: "wrap" }}>
-                  {profile.github_username && (
-                    <button onClick={() => setGithubModal(true)} className="badge badge-github" style={{ cursor: "pointer", padding: "4px 10px", fontSize: 12 }}>
-                      github.com/{profile.github_username}
-                    </button>
-                  )}
-                  {profile.orcid_id && (
-                    <button onClick={() => setOrcidModal(true)} className="badge badge-orcid" style={{ cursor: "pointer", padding: "4px 10px", fontSize: 12 }}>
-                      ORCID {profile.orcid_id.slice(0, 9)}
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* GitHub / ORCID connections */}
+              <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: "1px solid #f3f4f6", flexWrap: "wrap", alignItems: "center" }}>
+                {profile.github_username ? (
+                  <a href={`https://github.com/${profile.github_username}`} target="_blank" rel="noopener noreferrer"
+                    className="badge badge-github" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", fontSize: 12, textDecoration: "none" }}>
+                    {/* GitHub icon */}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                    {profile.github_verified && (
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    )}
+                    github.com/{profile.github_username}
+                  </a>
+                ) : isOwnProfile ? (
+                  <a href="/api/auth/github"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 12.5, color: "#374151", textDecoration: "none", background: "#fff", fontFamily: "inherit", fontWeight: 500 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                    Connect GitHub
+                  </a>
+                ) : null}
+
+                {profile.orcid_id ? (
+                  <a href={`https://orcid.org/${profile.orcid_id}`} target="_blank" rel="noopener noreferrer"
+                    className="badge badge-orcid" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", fontSize: 12, textDecoration: "none" }}>
+                    {profile.orcid_verified && (
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    )}
+                    ORCID {profile.orcid_id.slice(0, 9)}…
+                  </a>
+                ) : isOwnProfile ? (
+                  <a href="/api/auth/orcid"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", border: "1px solid #e5e7eb", borderRadius: 7, fontSize: 12.5, color: "#374151", textDecoration: "none", background: "#fff", fontFamily: "inherit", fontWeight: 500 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3e635" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    Connect ORCID
+                  </a>
+                ) : null}
+
+                {/* Scholar + ResearchGate — URL links, no OAuth */}
+                {profile.scholar_url && (
+                  <a href={profile.scholar_url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 6, fontSize: 12, color: "#92400e", textDecoration: "none", fontWeight: 500 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 0 1 .665 6.479A11.952 11.952 0 0 0 12 20.055a11.952 11.952 0 0 0-6.824-2.998 12.078 12.078 0 0 1 .665-6.479L12 14z"/></svg>
+                    Google Scholar
+                  </a>
+                )}
+                {profile.researchgate_url && (
+                  <a href={profile.researchgate_url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", background: "#e0f2fe", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 12, color: "#0369a1", textDecoration: "none", fontWeight: 500 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9 9h6M9 12h4M9 15h6"/></svg>
+                    ResearchGate
+                  </a>
+                )}
+              </div>
             </div>
 
             {/* Tabs */}
@@ -279,7 +324,7 @@ export default function ProfilePage() {
                 {[
                   ["Location", profile.location],
                   ["Website", profile.website],
-                  ["Phone", profile.phone],
+                  ["Phone", profile.phone_public ? profile.phone : null],
                   ["GitHub", profile.github_username ? `github.com/${profile.github_username}` : null],
                   ["ORCID", profile.orcid_id],
                   ["Joined", formatDate(profile.created_at)],
@@ -406,48 +451,6 @@ export default function ProfilePage() {
           </aside>
         </div>
       </div>
-
-      {githubModal && (
-        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setGithubModal(false); }}>
-          <div className="modal" style={{ maxWidth: 380 }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 600 }}>Verify GitHub</h2>
-              <button onClick={() => setGithubModal(false)} className="icon-btn">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-              <p style={{ fontSize: 13.5, color: "#6b7280" }}>Connect your GitHub account to show a verified builder badge on your profile.</p>
-              <input placeholder="GitHub username" defaultValue={profile.github_username || ""} />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setGithubModal(false)} className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }}>Cancel</button>
-                <button onClick={() => { setGithubModal(false); fire("GitHub verified."); }} className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>Verify</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {orcidModal && (
-        <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) setOrcidModal(false); }}>
-          <div className="modal" style={{ maxWidth: 380 }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 600 }}>Verify ORCID</h2>
-              <button onClick={() => setOrcidModal(false)} className="icon-btn">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-              <p style={{ fontSize: 13.5, color: "#6b7280" }}>Link your ORCID iD to verify your academic work.</p>
-              <input placeholder="0000-0002-1234-5678" defaultValue={profile.orcid_id || ""} />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setOrcidModal(false)} className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }}>Cancel</button>
-                <button onClick={() => { setOrcidModal(false); fire("ORCID verified."); }} className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>Verify</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {toast && <div className="toast">{toast}</div>}
     </div>

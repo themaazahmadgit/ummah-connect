@@ -1,17 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { CATEGORIES } from "@/lib/data";
 
 interface Profile {
   name: string; bio: string; role: string; location: string;
-  phone: string; website: string; github_username: string; orcid_id: string;
+  phone: string; phone_public: boolean; website: string; github_username: string; orcid_id: string;
+  scholar_url: string; researchgate_url: string;
+  github_verified: boolean; orcid_verified: boolean;
   expertise: string[]; skills: string[]; avatar_url?: string;
 }
 
 export default function SettingsPage() {
-  const [form, setForm] = useState<Profile>({ name: "", bio: "", role: "", location: "", phone: "", website: "", github_username: "", orcid_id: "", expertise: [], skills: [], avatar_url: "" });
+  return <Suspense><SettingsPageInner /></Suspense>;
+}
+
+function SettingsPageInner() {
+  const searchParams = useSearchParams();
+  const [form, setForm] = useState<Profile>({ name: "", bio: "", role: "", location: "", phone: "", phone_public: false, website: "", github_username: "", orcid_id: "", scholar_url: "", researchgate_url: "", github_verified: false, orcid_verified: false, expertise: [], skills: [], avatar_url: "" });
   const [skillInput, setSkillInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,9 +31,17 @@ export default function SettingsPage() {
     fetch("/api/settings").then(r => r.json()).then(data => {
       if (data.profile) {
         const p = data.profile;
-        setForm({ name: p.name || "", bio: p.bio || "", role: p.role || "", location: p.location || "", phone: p.phone || "", website: p.website || "", github_username: p.github_username || "", orcid_id: p.orcid_id || "", expertise: p.expertise || [], skills: p.skills || [], avatar_url: p.avatar_url || "" });
+        setForm({ name: p.name || "", bio: p.bio || "", role: p.role || "", location: p.location || "", phone: p.phone || "", phone_public: !!p.phone_public, website: p.website || "", github_username: p.github_username || "", orcid_id: p.orcid_id || "", scholar_url: p.scholar_url || "", researchgate_url: p.researchgate_url || "", github_verified: !!p.github_verified, orcid_verified: !!p.orcid_verified, expertise: p.expertise || [], skills: p.skills || [], avatar_url: p.avatar_url || "" });
       }
     }).finally(() => setLoading(false));
+
+    // Show toast when returning from OAuth
+    const connected = searchParams.get("connected");
+    const oauthError = searchParams.get("error");
+    if (connected === "github") { setToast("GitHub connected and verified."); setTimeout(() => setToast(""), 3000); }
+    if (connected === "orcid") { setToast("ORCID connected and verified."); setTimeout(() => setToast(""), 3000); }
+    if (oauthError) { setError(`Connection failed: ${oauthError.replace(/_/g, " ")}`); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,12 +130,31 @@ export default function SettingsPage() {
               <p style={{ fontSize: 13.5, fontWeight: 600 }}>Basic info</p>
             </div>
             <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-              {[["Full name", "name"], ["Role / title", "role"], ["Location", "location"], ["Website", "website"], ["Phone", "phone"]].map(([label, key]) => (
+              {[["Full name", "name"], ["Role / title", "role"], ["Location", "location"], ["Website", "website"]].map(([label, key]) => (
                 <div key={key}>
                   <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>{label}</label>
                   <input value={(form as unknown as Record<string, string>)[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} />
                 </div>
               ))}
+              {/* Phone with privacy toggle */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                  <label style={{ fontSize: 12.5, color: "#6b7280" }}>Phone</label>
+                  <button type="button" onClick={() => setForm(f => ({ ...f, phone_public: !f.phone_public }))}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+                    <div style={{ width: 32, height: 18, borderRadius: 999, background: form.phone_public ? "#0d7377" : "#d1d5db", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: form.phone_public ? 16 : 2, width: 14, height: 14, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                    </div>
+                    <span style={{ fontSize: 11.5, color: form.phone_public ? "#0d7377" : "#9ca3af", fontWeight: 500 }}>
+                      {form.phone_public ? "Public" : "Private"}
+                    </span>
+                  </button>
+                </div>
+                <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+1 234 567 8900" />
+                <p style={{ fontSize: 11.5, color: "#9ca3af", marginTop: 4 }}>
+                  {form.phone_public ? "Visible on your public profile." : "Only admins can see your phone number."}
+                </p>
+              </div>
               <div>
                 <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>Bio</label>
                 <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} maxLength={160} style={{ resize: "none", minHeight: 80 }} placeholder="160 chars max" />
@@ -167,20 +202,127 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Verification */}
+          {/* Connected accounts */}
           <section style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
             <div style={{ padding: "12px 18px", background: "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
-              <p style={{ fontSize: 13.5, fontWeight: 600 }}>Verification</p>
+              <p style={{ fontSize: 13.5, fontWeight: 600 }}>Connected accounts</p>
+              <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>Connect your accounts to get a verified badge on your profile.</p>
             </div>
-            <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>GitHub username</label>
-                <input value={form.github_username} onChange={e => setForm({ ...form, github_username: e.target.value })} placeholder="yourusername" />
+            <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* GitHub */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#111827"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13.5, fontWeight: 600, color: "#111827" }}>GitHub</p>
+                    {form.github_verified && form.github_username ? (
+                      <p style={{ fontSize: 12, color: "#059669" }}>github.com/{form.github_username}</p>
+                    ) : (
+                      <p style={{ fontSize: 12, color: "#9ca3af" }}>Not connected</p>
+                    )}
+                  </div>
+                </div>
+                {form.github_verified ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "#1d4ed8" }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    <span style={{ fontSize: 12.5, color: "#1d4ed8", fontWeight: 600 }}>Verified</span>
+                  </div>
+                ) : (
+                  <a href="/api/auth/github"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#111827", color: "#fff", borderRadius: 7, fontSize: 13, fontWeight: 500, textDecoration: "none" }}>
+                    Connect
+                  </a>
+                )}
               </div>
-              <div>
-                <label style={{ fontSize: 12.5, color: "#6b7280", display: "block", marginBottom: 5 }}>ORCID iD</label>
-                <input value={form.orcid_id} onChange={e => setForm({ ...form, orcid_id: e.target.value })} placeholder="0000-0002-1234-5678" />
+
+              <div style={{ height: 1, background: "#f3f4f6" }} />
+
+              {/* ORCID */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="8" r="0.5" fill="#16a34a"/></svg>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13.5, fontWeight: 600, color: "#111827" }}>ORCID</p>
+                    {form.orcid_verified && form.orcid_id ? (
+                      <p style={{ fontSize: 12, color: "#059669" }}>orcid.org/{form.orcid_id}</p>
+                    ) : (
+                      <p style={{ fontSize: 12, color: "#9ca3af" }}>Not connected</p>
+                    )}
+                  </div>
+                </div>
+                {form.orcid_verified ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "#1d4ed8" }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    <span style={{ fontSize: 12.5, color: "#1d4ed8", fontWeight: 600 }}>Verified</span>
+                  </div>
+                ) : (
+                  <a href="/api/auth/orcid"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#16a34a", color: "#fff", borderRadius: 7, fontSize: 13, fontWeight: 500, textDecoration: "none" }}>
+                    Connect
+                  </a>
+                )}
               </div>
+
+              <div style={{ height: 1, background: "#f3f4f6" }} />
+
+              {/* Google Scholar */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "#fef9c3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="2"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 0 1 .665 6.479A11.952 11.952 0 0 0 12 20.055a11.952 11.952 0 0 0-6.824-2.998 12.078 12.078 0 0 1 .665-6.479L12 14z"/></svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13.5, fontWeight: 600, color: "#111827" }}>Google Scholar</p>
+                    <input
+                      placeholder="https://scholar.google.com/citations?user=..."
+                      value={form.scholar_url}
+                      onChange={e => setForm({ ...form, scholar_url: e.target.value })}
+                      style={{ marginTop: 6, fontSize: 12.5, padding: "6px 10px" }}
+                    />
+                  </div>
+                </div>
+                {form.scholar_url && (
+                  <a href={form.scholar_url} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: "#0d7377", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    View ↗
+                  </a>
+                )}
+              </div>
+
+              <div style={{ height: 1, background: "#f3f4f6" }} />
+
+              {/* ResearchGate */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9 9h6M9 12h4M9 15h6"/></svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13.5, fontWeight: 600, color: "#111827" }}>ResearchGate</p>
+                    <input
+                      placeholder="https://www.researchgate.net/profile/..."
+                      value={form.researchgate_url}
+                      onChange={e => setForm({ ...form, researchgate_url: e.target.value })}
+                      style={{ marginTop: 6, fontSize: 12.5, padding: "6px 10px" }}
+                    />
+                  </div>
+                </div>
+                {form.researchgate_url && (
+                  <a href={form.researchgate_url} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: "#0d7377", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    View ↗
+                  </a>
+                )}
+              </div>
+
             </div>
           </section>
 

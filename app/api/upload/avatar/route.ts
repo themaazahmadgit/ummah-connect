@@ -20,18 +20,24 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(bytes);
 
   const admin = createAdminClient();
+
+  // Ensure bucket exists (ignore error if already exists)
+  await admin.storage.createBucket("avatars", { public: true, fileSizeLimit: 3145728 });
+
   const { error: uploadError } = await admin.storage
     .from("avatars")
     .upload(path, buffer, { contentType: file.type, upsert: true });
 
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  // If upload failed, return clear error
+  if (uploadError) {
+    console.error("Avatar upload error:", uploadError);
+    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  }
 
   const { data: { publicUrl } } = admin.storage.from("avatars").getPublicUrl(path);
 
-  // Cache-bust the URL
-  const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+  // Store clean URL in DB, send cache-busted URL to client so browser shows new image immediately
+  await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
 
-  await admin.from("profiles").update({ avatar_url: avatarUrl }).eq("id", user.id);
-
-  return NextResponse.json({ avatar_url: avatarUrl });
+  return NextResponse.json({ avatar_url: `${publicUrl}?t=${Date.now()}` });
 }

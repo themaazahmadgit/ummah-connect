@@ -27,7 +27,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ user
     // Check if current user follows this profile
     const { data: { user } } = await supabase.auth.getUser();
     let isFollowing = false;
+    let isOwnProfile = false;
     if (user) {
+      isOwnProfile = user.id === profile.id;
       const { data: followData } = await supabase
         .from("follows")
         .select("id")
@@ -55,6 +57,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ user
       },
       posts: posts || [],
       isFollowing,
+      isOwnProfile,
     });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -14,9 +15,10 @@ html {
 body {
   background: #ffffff;
   color: #111827;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', 'Segoe UI', sans-serif;
   font-size: 14px;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
@@ -78,7 +80,7 @@ h1, h2, h3 {
   gap: 6px;
   font-size: 13.5px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 16px;
   cursor: pointer;
   transition: all 0.12s;
@@ -118,7 +120,7 @@ h1, h2, h3 {
 .btn-lg {
   font-size: 14.5px;
   padding: 11px 22px;
-  border-radius: 9px;
+  border-radius: 12px;
 }
 
 /* ── Inputs ───────────────────────────────────── */
@@ -126,7 +128,7 @@ h1, h2, h3 {
 input, textarea, select {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 9px 12px;
   color: #111827;
   font-size: 13.5px;
@@ -150,7 +152,7 @@ select option { background: #fff; }
 .card {
   background: #ffffff;
   border: 1px solid #f0f0f0;
-  border-radius: 10px;
+  border-radius: 16px;
 }
 
 .card-interactive {
@@ -197,6 +199,12 @@ select option { background: #fff; }
   background: #fffbeb;
   color: #92400e;
   border: 1px solid #fde68a;
+}
+
+.badge-blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 /* ── Pills / Category filter ──────────────────── */
@@ -298,7 +306,7 @@ select option { background: #fff; }
 .modal {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  border-radius: 22px;
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
@@ -313,7 +321,7 @@ select option { background: #fff; }
   bottom: 20px;
   right: 20px;
   background: #0d7377;
-  border-radius: 9px;
+  border-radius: 14px;
   padding: 11px 16px;
   font-size: 13px;
   color: #ffffff;
@@ -378,7 +386,7 @@ select option { background: #fff; }
 /* ── Avatar ───────────────────────────────────── */
 
 .avatar {
-  border-radius: 8px;
+  border-radius: 22%;
   background: #f3f4f6;
   display: flex;
   align-items: center;
@@ -425,45 +433,210 @@ select option { background: #fff; }
 .upvote-btn:hover { border-color: #b2e4e6; color: #0d7377; }
 .upvote-btn.active { background: #e6f7f8; border-color: #7ecfd2; color: #0d7377; }
 
-/* ── Mobile responsive ────────────────────────── */
+/* ── Landing page ─────────────────────────────── */
+
+.feature-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
+  padding: 24px 22px;
+  transition: box-shadow 0.18s, border-color 0.18s;
+}
+.feature-card:hover {
+  box-shadow: 0 4px 20px rgba(13,115,119,0.1);
+  border-color: #b2e4e6;
+}
+
+.footer-link {
+  font-size: 13px;
+  color: #9ca3af;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 5px;
+  transition: color 0.1s;
+}
+.footer-link:hover { color: #111827; }
+
+/* ── Hashtag row ──────────────────────────────── */
+
+.hashtag-row:hover { background: #f5fbfb !important; }
+.hashtag-row:hover span:first-child { color: #0d7377!important; }
+
+/* ── Skeleton shimmer ─────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+  display: block;
+}
+
+/* ── Compose extras (hide on mobile) ─────────── */
+
+.compose-extras { display: flex; }
+
+@media (max-width: 768px) {
+  .compose-extras { display: none !important; }
+  .compose-mobile-bar { display: flex !important; }
+}
+
+.compose-mobile-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+  gap: 8px;
+}
+
+/* ── Responsive layout helpers ────────────────── */
+
+/* Feed/Ideas/Groups: 3-col or 2-col grid */
+.feed-layout {
+  display: grid;
+  grid-template-columns: 192px 1fr 224px;
+  gap: 40px;
+  align-items: start;
+}
+.feed-layout-2 {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 28px;
+  align-items: start;
+}
+.feed-layout-left {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+/* Generic 2-col with right sidebar */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 24px;
+  align-items: start;
+}
+.grid-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 24px;
+  align-items: start;
+}
+/* Horizontal scroll row (category pills, etc) */
+.scroll-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.scroll-row::-webkit-scrollbar { display: none; }
+/* Responsive card grids */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.card-grid-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.three-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 768px) {
+  .card-grid,
+  .card-grid-sm,
+  .two-col,
+  .three-col { grid-template-columns: 1fr !important; }
+}
+
+/* Sidebar hides on mobile, shows as horizontal pills instead */
+.sidebar-desktop { display: block; }
+.category-pills  { display: none; }
+
+@media (max-width: 900px) {
+  .feed-layout {
+    grid-template-columns: 1fr 200px;
+  }
+  .feed-layout aside:first-child {
+    display: none;
+  }
+}
 
 @media (max-width: 768px) {
   .container { padding-left: 16px !important; padding-right: 16px !important; }
 
-  /* Navbar: hide text links, show hamburger menu via dropdown only */
   .nav-links { display: none !important; }
+  .hamburger { display: flex !important; }
 
-  /* Grid layouts → single column */
-  [style*="gridTemplateColumns"] {
+  /* All CSS-class grids collapse */
+  .feed-layout,
+  .feed-layout-2,
+  .feed-layout-left,
+  .grid-2col,
+  .grid-sidebar {
     grid-template-columns: 1fr !important;
   }
 
-  /* Profile 2-col → stack */
-  [style*="grid-template-columns: 1fr 240px"],
-  [style*="grid-template-columns: 1fr 260px"],
-  [style*="grid-template-columns: 1fr 300px"] {
-    grid-template-columns: 1fr !important;
-  }
+  /* Sidebars hide on mobile */
+  .sidebar-desktop { display: none !important; }
+  .category-pills  { display: flex !important; }
 
-  /* Sidebar sticky → normal flow on mobile */
-  aside[style*="position: sticky"] {
+  /* Right sidebars hidden on mobile (use .right-sidebar class for explicit hide) */
+  .feed-layout aside,
+  .grid-2col aside,
+  .grid-sidebar aside {
+    display: none !important;
+  }
+  /* feed-layout-2 asides collapse but stay visible (e.g. group members) */
+  .feed-layout-2 aside {
     position: static !important;
   }
 
-  /* Modal full-width */
-  .modal { width: calc(100vw - 32px) !important; margin: 16px !important; }
+  /* Sticky sidebars become static */
+  aside { position: static !important; }
 
-  /* Feed input full width */
-  textarea, input[type="text"], input[type="email"], input[type="password"], input[type="datetime-local"], select {
-    font-size: 16px !important; /* prevent iOS zoom */
+  /* Modals full width */
+  .modal {
+    width: calc(100vw - 24px) !important;
+    margin: 12px !important;
+    max-height: 85vh !important;
+  }
+  .modal-bg { padding: 12px !important; align-items: flex-end !important; }
+
+  /* Prevent iOS font zoom on inputs */
+  input, textarea, select {
+    font-size: 16px !important;
   }
 
-  /* Cards min-width fix */
-  [style*="minmax(340px"] { grid-template-columns: 1fr !important; }
-  [style*="minmax(320px"] { grid-template-columns: 1fr !important; }
+  /* Hide right sidebar on mobile */
+  .right-sidebar { display: none !important; }
+
+  /* Full-width buttons on mobile */
+  .btn-mobile-full { width: 100% !important; justify-content: center !important; }
 }
 
 @media (max-width: 480px) {
-  h1[style*="font-size: 22"] { font-size: 18px !important; }
-  .btn { padding: 7px 12px !important; font-size: 12.5px !important; }
+  .container { padding-left: 12px !important; padding-right: 12px !important; }
+  .btn { padding: 8px 14px !important; font-size: 13px !important; }
+  .btn-sm { padding: 6px 10px !important; font-size: 12px !important; }
 }
+

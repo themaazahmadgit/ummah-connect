@@ -88,7 +88,7 @@ export default function PeoplePage() {
             <p style={{ color: "#9ca3af", fontSize: 13.5 }}>No one found. Try a different filter.</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+          <div className="card-grid-sm" style={{ gap: 12 }}>
             {people.map(person => (
               <a key={person.id} href={`/profile/${person.username}`} style={{ textDecoration: "none" }}>
                 <div className="card card-interactive" style={{ padding: "16px 18px" }}>
