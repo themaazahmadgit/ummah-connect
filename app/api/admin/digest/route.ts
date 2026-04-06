@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Resend } from "resend";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   const resend = new Resend(process.env.RESEND_API_KEY);
   const supabase = await createClient();

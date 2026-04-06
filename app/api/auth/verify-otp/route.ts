@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const { phone, token } = await req.json();
   if (!phone || !token) return NextResponse.json({ error: "Phone and OTP required." }, { status: 400 });

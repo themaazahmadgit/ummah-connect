@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // Redirects the user to ORCID OAuth authorization page
 export async function GET() {
   const clientId = process.env.ORCID_CLIENT_ID;

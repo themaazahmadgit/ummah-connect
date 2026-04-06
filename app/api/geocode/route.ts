@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = "force-dynamic";
+
 const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY
 
 // Map Google place types → our simplified types

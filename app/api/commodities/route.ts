@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const TTL = 5 * 60 * 1000;
 let cache: { data: Commodity[]; at: number } | null = null;
 
