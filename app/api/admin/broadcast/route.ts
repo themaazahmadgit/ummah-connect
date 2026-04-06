@@ -6,7 +6,7 @@ import { Resend } from "resend";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder");
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
